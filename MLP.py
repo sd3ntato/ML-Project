@@ -114,4 +114,35 @@ class MLP():
     for m in range(self.Nl+1):
       self.x[m+1] = self.f[m+1]( np.dot( self.w[m] , np.vstack((self.x[m],1)) ) )
     return np.copy(self.x[self.Nl+1])
-      
+
+
+from itertools import permutations  
+
+def combinations(Nh,Nls):
+  res = []
+  for Nl in Nls :
+    res.extend(list(product(Nh,repeat=Nl)))
+  return res
+
+Nh = [2, 3, 4]
+Nls = [2, 3]
+
+grid = {
+  'units' : combinations(Nh,Nls),
+  'lr' : [1e-01, 1e-02, 1e-03],  # learning rate
+  'a' : [1e-01, 1e-02, 1e-03, 0],  # momento
+  'l' : [1e-01, 1e-02, 1e-03, 1e-10, 1e-12 0],  # regolarizzazione
+  'f' : ['relu','tanh'], # funzione attivazione
+  'w_init' : [0.7, 1e-02], # scalining iniziale pesi
+}
+
+def k_fold_CV(train_x, train_y, k, n_init, grid):
+  # splittare il training set in k fold
+  splits = split( train_x, train_y)  
+
+  # per ogni configurazione in grid:
+      # per ogni split in splits:
+        # inizializza n_init reti con configurazione
+        # allena
+        # testa
+        # salva la migliore configurazione
