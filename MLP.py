@@ -2,7 +2,8 @@
 #https://deepnotes.io/softmax-crossentropy
 
 import numpy as np
-
+from IPython.display import clear_output
+from sklearn.utils import shuffle
 
 # funzioni attivazione
 from numpy import tanh
@@ -52,7 +53,10 @@ class MLP():
       self.w[i] = (2*np.random.rand(Nh,Nh+1)-1)*w_scale # pesi layer-to-layer, ultima colonna e' bias
     self.w[Nl] = (2*np.random.rand(Ny,Nh+1)-1)*w_scale # pesi ultimo-layer-to-output, ultima colonna e' bias
 
-  def forward_pass(self, u:np.ndarray ): # calcolo attivazioni e potenziali di attivazione
+  def forward_pass(self, u:np.ndarray ): 
+    """
+    Calcolo attivazioni e potenziali di attivazione
+    """
     if not u.shape == (self.Nu,1): 
       u = u.reshape((self.Nu,1))
     self.v[0] = u
@@ -61,7 +65,10 @@ class MLP():
       self.v[m+1] =  np.dot( self.w[m] , np.vstack((self.x[m],1)) ) # attivazione untia' di bias sempre 1 #
       self.x[m+1] = self.f[m+1](self.v[m+1])
 
-  def backward_pass(self, y ): # calcolo coefficenti di propagazione errore
+  def backward_pass(self, y ): 
+    """
+    Calcolo coefficenti di propagazione errore
+    """
     Nl=self.Nl
     if not y.shape == (self.Ny,1):
       y = y.reshape((self.Ny,1))
@@ -69,12 +76,21 @@ class MLP():
     for m in range(Nl,-1,-1):
       self.d[m] =  np.dot(  np.delete( self.w[m].T , -1, 0)  , self.d[m+1]  ) * self.df[m](self.v[m])  # devo levare la riga (colonna) dei bias qui 
 
-  def compute_gradient(self): # date attivazioni e coefficenti errore calcolo gradiente
+  def compute_gradient(self): 
+    """
+    Date attivazioni e coefficenti errore calcolo gradiente
+    """
     Nl = self.Nl
     for m in range(Nl+1):
       self.grad[m] = np.dot( self.d[m+1] , np.vstack((self.x[m],1)).T )
 
-  def online_BP(self, train_x:np.ndarray, train_y:np.ndarray, eta):
+  def epoch_online_BP(self, train_x:np.ndarray, train_y:np.ndarray, eta):
+    """
+    Use all patterns in the given training set to execute an epoch of online training
+    train_x : input in training set
+    train_y : output in training set
+    eta: learning rate
+    """
     for i in range(np.size(train_x,axis=0)):
       self.forward_pass( train_x[i] ) # calcoli attivazione e potenziale
       self.backward_pass( train_y[i] ) # calcoli coeff di propagazionie
@@ -83,8 +99,9 @@ class MLP():
       for m in range(self.Nl+1):
         self.w[m] += eta * self.grad[m] 
 
-  def batch_BP(self, train_x:np.ndarray, train_y:np.ndarray, eta, a=1e-12,l=1e-12):
+  def epoch_batch_BP(self, train_x:np.ndarray, train_y:np.ndarray, eta, a=1e-12,l=1e-12):
     """
+    Use all patterns in the given training set to execute an epoch of batch training
     train_x : input in training set
     train_y : output in training set
     eta: learning rate
@@ -106,7 +123,12 @@ class MLP():
       self.w[m] += eta * p[m] + a * old_deltas[m] - l * self.w[m]
       old_deltas[m] = eta * p[m] + a * old_deltas[m] - l * self.w[m]
 
-  def predict(self, u):
+  def supply(self, u):
+    """
+    Supply an input to this network. The network computes its internal state and otuput of the network is activation of the last layer's units.
+    u: input pattern
+    returns output of the network given the supplied pattern
+    """
     if not u.shape == (self.Nu,1):
       u = u.reshape((self.Nu,1))
     
@@ -115,8 +137,61 @@ class MLP():
       self.x[m+1] = self.f[m+1]( np.dot( self.w[m] , np.vstack((self.x[m],1)) ) )
     return np.copy(self.x[self.Nl+1])
 
+  def supply_sequence(self,U):
+    """
+    given sequence of input patterns, computes sequence of relative network's outputs.
+    complied version of 
+      return [float(self.predict(u)) for u in tx]
+    U: sequence of input patterns.
+    """
+    sup = self.supply
+    return list( map( lambda u :float( sup(u) ), U ) )
+  
+  def classify(self,u):
+    """
+    classify sample. To be written properly
+    u: imput pattern
+    """
+    return -1 if float( self.supply(u) )<0 else 1
 
-from itertools import permutations  
+  def regression_train(self, train_x, train_y, eta, a=1e-12, l=1e-12, val_x=None, val_y=None, max_epochs=300, tresh=.01, epoch_f=None, shuffle_data=True, measure_interval=10):
+    """
+    Executes a maximum of max_epochs epochs of training using the function epoch_f.
+    After measure_interval epochs, mesures error on training set, and exits when training error falls below given treshold.
+    Returns error at each mesurement calculated both on training and validation set, so you can plot them.
+    Could use some early stopping mechanism through validation error.
+    """
+    e = [None]*max_epochs
+    v = [None]*max_epochs
+    for i in range(max_epochs):
+      if shuffle_data==True:
+        train_x, train_y = shuffle(train_x, train_y)
+      
+      epoch_f( train_x, train_y, eta, a=a, l=l )
+      
+      if i % measure_interval == 0:
+        i=int(i/measure_interval)
+        outs_t = self.supply_sequence( train_x ) # actual outputs of the network
+        e[i] = MSE(outs_t,train_y) # Mean Squared Error on training set
+        if val_x is not None:
+          outs_v = self.supply_sequence( val_x ) # actual outputs of the network
+          v[i] = MSE(outs_v,val_y) # Mean Squared Error on training set
+        if i>2 and ( e[i] < tresh or e[i]>e[i-1]):  # we quit training when error on training set falls below treshold
+          print(f'final error: {e[i]}')
+          break
+        print(f'training error atm: {e[i]}') 
+        clear_output(wait=True)
+    return e, v
+
+def score(o,d): 
+  """
+  percentage score of nework in binary classification task. To be written properly
+  o: sequence of ouputs of the network, 
+  d: sequence of desired outputs
+  """
+  return ( o - d == 0).sum()/len(o)*100
+
+from itertools import product  
 
 def combinations(Nh,Nls):
   res = []
@@ -131,7 +206,7 @@ grid = {
   'units' : combinations(Nh,Nls),
   'lr' : [1e-01, 1e-02, 1e-03],  # learning rate
   'a' : [1e-01, 1e-02, 1e-03, 0],  # momento
-  'l' : [1e-01, 1e-02, 1e-03, 1e-10, 1e-12 0],  # regolarizzazione
+  'l' : [1e-01, 1e-02, 1e-03, 1e-10, 1e-12, 0],  # regolarizzazione
   'f' : ['relu','tanh'], # funzione attivazione
   'w_init' : [0.7, 1e-02], # scalining iniziale pesi
 }
