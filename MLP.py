@@ -29,7 +29,13 @@ def derivative(f):
 
 class MLP():
 
-  def __init__(self, Nh=16, Nl=2, Nu=1, Ny=1, f=tanh, f_out=ide ,w_scale=.05, loss=squared_error):
+  def __init__(self, Nh=[10], Nu=1, Ny=1, f=tanh, f_out=ide ,w_scale=.05, loss=squared_error):
+
+    Nl = len(Nh)
+    self.Nl = Nl # numero layer
+    self.Nu = Nu # unita' input
+    self.Ny = Ny # unita' output
+    self.Nh = Nh # unita' interne
 
     self.f = [ide] + ([f]*Nl) + [f_out] #[f_in, f,f,f,f ,f_out] f[m](x[m])
     self.df = [ derivative(f) for f in self.f] # df[m](v[m])
@@ -41,17 +47,14 @@ class MLP():
     self.l = loss # funzione loss (y-d)**2
     self.dl = derivative(loss) # (y-d)
 
-    self.Nl = Nl # numero layer
-    self.Nu = Nu # unita' input
-    self.Ny = Ny # unita' output
-    self.Nh = Nh # unita' interne
+
 
     # x[m+1] = f[m]( w[m]*x[m] ) x[m] = (Nh,1) x[m+1] = (Nh,1) w[m] = (Nh,Nh)
 
-    self.w[0] = (2*np.random.rand(Nh,Nu+1)-1)*w_scale # pesi input-to-primo-layer, ultima colonna e' bias. w[i,j] in [-1,1]
-    for i in range(1,Nl):
-      self.w[i] = (2*np.random.rand(Nh,Nh+1)-1)*w_scale # pesi layer-to-layer, ultima colonna e' bias
-    self.w[Nl] = (2*np.random.rand(Ny,Nh+1)-1)*w_scale # pesi ultimo-layer-to-output, ultima colonna e' bias
+    self.w[0] = ( 2*np.random.rand( Nh[0], Nu+1 ) -1 )*w_scale # pesi input-to-primo-layer, ultima colonna e' bias. w[i,j] in [-1,1]
+    for i in range(1, Nl):
+      self.w[i] = ( 2*np.random.rand( Nh[i], Nh[i-1] + 1 )-1 )*w_scale # pesi layer-to-layer, ultima colonna e' bias
+    self.w[Nl] = ( 2*np.random.rand( Ny, Nh[Nl-1] + 1) -1 )*w_scale # pesi ultimo-layer-to-output, ultima colonna e' bias
 
   def forward_pass(self, u:np.ndarray ): 
     """
@@ -156,8 +159,8 @@ class MLP():
 
   def regression_train(self, train_x, train_y, eta, a=1e-12, l=1e-12, val_x=None, val_y=None, max_epochs=300, tresh=.01, epoch_f=None, shuffle_data=True, measure_interval=10):
     """
-    Executes a maximum of max_epochs epochs of training using the function epoch_f.
-    After measure_interval epochs, mesures error on training set, and exits when training error falls below given treshold.
+    Executes a maximum of max_epochs epochs of training using the function epoch_f in order to do regression of some function that maps input train_x->train_y.
+    After each measure_interval epochs, mesures error on training set, and exits when training error falls below given treshold.
     Returns error at each mesurement calculated both on training and validation set, so you can plot them.
     Could use some early stopping mechanism through validation error.
     """
