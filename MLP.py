@@ -37,20 +37,14 @@ class MLP():
     self.Ny = Ny # unita' output
     self.Nh = Nh # unita' interne
 
-    self.f = [ide] + ([f]*Nl) + [f_out] #[f_in, f,f,f,f ,f_out] f[m](x[m])
+    self.f = [ide] + ([f]*Nl) + [f_out] #[f_in, f,f,f,f ,f_out] f[m](a[m])
     self.df = [ derivative(f) for f in self.f] # df[m](v[m])
-    self.w = [None]*(Nl+1) # matrici dei pesi 
-    self.v = [None]*(Nl+2) # potenziali attivazione v[m]
-    self.x = [None]*(Nl+2) # attivazioni x[m] = f[m](v[m])
-    self.d = [None]*(Nl+2) # coefficenti di propagazione d[m]
-    self.grad = [None]*(Nl+1) # gradienti w[m] = w[m] + lr*grad[m]
+    self.w = np.array([None]*(Nl+1)) # matrici dei pesi 
+
     self.l = loss # funzione loss (y-d)**2
     self.dl = derivative(loss) # (y-d)
 
-
-
-    # x[m+1] = f[m]( w[m]*x[m] ) x[m] = (Nh,1) x[m+1] = (Nh,1) w[m] = (Nh,Nh)
-
+    # a[m+1] = f[m]( w[m]*a[m] ) a[m] = (Nh,1) a[m+1] = (Nh,1) w[m] = (Nh,Nh)
     self.w[0] = ( 2*np.random.rand( Nh[0], Nu+1 ) -1 )*w_scale # pesi input-to-primo-layer, ultima colonna e' bias. w[i,j] in [-1,1]
     for i in range(1, Nl):
       self.w[i] = ( 2*np.random.rand( Nh[i], Nh[i-1] + 1 )-1 )*w_scale # pesi layer-to-layer, ultima colonna e' bias
@@ -60,47 +54,47 @@ class MLP():
     """
     Calcolo attivazioni e potenziali di attivazione
     """
+    Nl = self.Nl
+    v = [None]*(Nl+2) # potenziali attivazione v[m]
+    a = [None]*(Nl+2) # attivazioni a[m] = f[m](v[m])
+
     if not u.shape == (self.Nu,1): 
       u = u.reshape((self.Nu,1))
-    self.v[0] = u
-    self.x[0] = u # attivazione untia' input e' l'input esterno
+    v[0] = u
+    a[0] = u # attivazione untia' input e' l'input esterno
     for m in range(self.Nl+1): 
-      self.v[m+1] =  np.dot( self.w[m] , np.vstack((self.x[m],1)) ) # attivazione untia' di bias sempre 1 #
-      self.x[m+1] = self.f[m+1](self.v[m+1])
+      v[m+1] =  np.dot( self.w[m] , np.vstack((a[m],1)) ) # attivazione untia' di bias sempre 1 #
+      a[m+1] = self.f[m+1](v[m+1])
+    return a,v
 
-  def backward_pass(self, y ): 
+  def backward_pass(self, y, a, v): 
     """
     Calcolo coefficenti di propagazione errore
     """
     Nl=self.Nl
+    d = [None]*(self.Nl+2) # coefficenti di propagazione d[m]
     if not y.shape == (self.Ny,1):
       y = y.reshape((self.Ny,1))
-    self.d[Nl+1] = self.dl( y , self.x[Nl+1]) * self.df[Nl+1](self.v[Nl+1]) # coeff prop output
+    d[Nl+1] = self.dl( y , a[Nl+1]) * self.df[Nl+1](v[Nl+1]) # coeff prop output
     for m in range(Nl,-1,-1):
-      self.d[m] =  np.dot(  np.delete( self.w[m].T , -1, 0)  , self.d[m+1]  ) * self.df[m](self.v[m])  # devo levare la riga (colonna) dei bias qui 
+      d[m] =  np.dot(  np.delete( self.w[m].T , -1, 0)  , d[m+1]  ) * self.df[m](v[m])  # devo levare la riga (colonna) dei bias qui 
+    return d
 
-  def compute_gradient(self): 
+  def compute_gradient(self,p): 
     """
     Date attivazioni e coefficenti errore calcolo gradiente
     """
+    x,y = p
+    grad = [None]*(self.Nl+1) # gradienti w[m] = w[m] + lr*grad[m]
+
+    a, v = self.forward_pass( x ) # calcoli attivazione e potenziale
+    d = self.backward_pass( y, a, v ) # calcoli coeff di propagazionie
+
     Nl = self.Nl
     for m in range(Nl+1):
-      self.grad[m] = np.dot( self.d[m+1] , np.vstack((self.x[m],1)).T )
-
-  def epoch_online_BP(self, train_x:np.ndarray, train_y:np.ndarray, eta):
-    """
-    Use all patterns in the given training set to execute an epoch of online training
-    train_x : input in training set
-    train_y : output in training set
-    eta: learning rate
-    """
-    for i in range(np.size(train_x,axis=0)):
-      self.forward_pass( train_x[i] ) # calcoli attivazione e potenziale
-      self.backward_pass( train_y[i] ) # calcoli coeff di propagazionie
-      self.compute_gradient() 
-
-      for m in range(self.Nl+1):
-        self.w[m] += eta * self.grad[m] 
+      grad[m] = np.dot( d[m+1] , np.vstack( ( a[m], 1 ) ).T )
+    
+    return np.array(grad)
 
   def epoch_batch_BP(self, train_x:np.ndarray, train_y:np.ndarray, eta, a=1e-12,l=1e-12):
     """
@@ -111,52 +105,17 @@ class MLP():
     a: momentum rate
     l: thickonov regularization rate
     """
-    old_deltas = [np.zeros(self.w[i].shape) for i in range(self.Nl+1)] # momento
-    p = [np.zeros(self.w[i].shape) for i in range(self.Nl+1)] # somma parziale gradienti
+    old_deltas = np.array( [np.zeros(self.w[i].shape) for i in range(self.Nl+1)] ) # momento
+    p = np.array( [np.zeros(self.w[i].shape) for i in range(self.Nl+1)] ) # somma parziale gradienti
     N = np.size(train_x,axis=0) # numero sample in training set
-    for i in range(N): # per ogni pattern
-      self.forward_pass( train_x[i] ) 
-      self.backward_pass( train_y[i] )
-      self.compute_gradient() # gradiente al passo i
 
-      for m in range(self.Nl+1):
-        p[m] += self.grad[m] * (1/N)
+    comp_grad = self.compute_gradient
+    p = sum( map( comp_grad, zip(train_x,train_y ) ) )/N
 
-    for m in range(self.Nl+1):
-      self.w[m] += eta * p[m] + a * old_deltas[m] - l * self.w[m]
-      old_deltas[m] = eta * p[m] + a * old_deltas[m] - l * self.w[m]
-
-  def supply(self, u):
-    """
-    Supply an input to this network. The network computes its internal state and otuput of the network is activation of the last layer's units.
-    u: input pattern
-    returns output of the network given the supplied pattern
-    """
-    if not u.shape == (self.Nu,1):
-      u = u.reshape((self.Nu,1))
-    
-    self.x[0] = u
-    for m in range(self.Nl+1):
-      self.x[m+1] = self.f[m+1]( np.dot( self.w[m] , np.vstack((self.x[m],1)) ) )
-    return np.copy(self.x[self.Nl+1])
-
-  def supply_sequence(self,U):
-    """
-    given sequence of input patterns, computes sequence of relative network's outputs.
-    complied version of 
-      return [float(self.predict(u)) for u in tx]
-    U: sequence of input patterns.
-    """
-    sup = self.supply
-    return list( map( lambda u :float( sup(u) ), U ) )
+    deltas = eta * p + a * old_deltas - l * self.w
+    self.w += deltas
+    old_deltas = deltas
   
-  def classify(self,u):
-    """
-    classify sample. To be written properly
-    u: imput pattern
-    """
-    return -1 if float( self.supply(u) )<0 else 1
-
   def regression_train(self, train_x, train_y, eta, a=1e-12, l=1e-12, val_x=None, val_y=None, max_epochs=300, tresh=.01, epoch_f=None, shuffle_data=True, measure_interval=10):
     """
     Executes a maximum of max_epochs epochs of training using the function epoch_f in order to do regression of some function that maps input train_x->train_y.
@@ -185,6 +144,59 @@ class MLP():
         print(f'training error atm: {e[i]}') 
         clear_output(wait=True)
     return e, v
+
+  def supply(self, u):
+    """
+    Supply an input to this network. The network computes its internal state and otuput of the network is activation of the last layer's units.
+    u: input pattern
+    returns output of the network given the supplied pattern
+    """
+    a = [None]*(self.Nl+2) # attivazioni a[m] = f[m](v[m])
+
+    if not u.shape == (self.Nu,1):
+      u = u.reshape((self.Nu,1))
+    
+    a[0] = u
+    for m in range(self.Nl+1):
+      a[m+1] = self.f[m+1]( np.dot( self.w[m] , np.vstack((a[m],1)) ) )
+    return np.copy(a[self.Nl+1])
+
+  def supply_sequence(self,U):
+    """
+    given sequence of input patterns, computes sequence of relative network's outputs.
+    complied version of 
+      return [float(self.predict(u)) for u in tx]
+    U: sequence of input patterns.
+    """
+    sup = self.supply
+    return list( map( lambda u :float( sup(u) ), U ) )
+  
+  def classify(self,u):
+    """
+    classify sample. To be written properly
+    u: imput pattern
+    """
+    return -1 if float( self.supply(u) )<0 else 1
+
+"""
+  def epoch_online_BP(self, train_x:np.ndarray, train_y:np.ndarray, eta):
+    ""
+    Use all patterns in the given training set to execute an epoch of online training
+    train_x : input in training set
+    train_y : output in training set
+    eta: learning rate
+    ""
+    for i in range(np.size(train_x,axis=0)):
+      
+      self.compute_gradient() 
+
+      for m in range(self.Nl+1):
+        self.w[m] += eta * self.grad[m] 
+"""
+
+
+
+
 
 def score(o,d): 
   """
