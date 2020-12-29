@@ -7,29 +7,34 @@ from sklearn.utils import shuffle
 
 # funzioni attivazione
 from numpy import tanh
+from scipy.special import softmax
 ide = lambda x : np.copy(x)
 relu = lambda x: x*(x > 0)
 
 # funzioni loss
 squared_error = lambda y,d:  np.linalg.norm(y - d) ** 2
+cross_entropy = lambda y,d: -np.sum( d * np.log( y + np.finfo(float).eps ) )
 
 MSE = lambda x,y: np.mean( np.square( x-y ) )
 
 
 def derivative(f):
   if f == tanh:
-    return lambda x: 1.0 - np.tanh(x)**2
+    return lambda x: 1.0 - tanh(x)**2
   elif f == relu:
     return lambda x: 1*(x>=0)
-  elif f == ide:
+  elif f == ide or f == softmax:
     return lambda x : x-x+1
-  elif f == squared_error:
+  elif f == squared_error or f == cross_entropy:
     return lambda d,y: d-y
 
 
 class MLP():
 
   def __init__(self, Nh=[10], Nu=1, Ny=1, f=tanh, f_out=ide ,w_scale=.05, loss=squared_error):
+    
+    if loss == cross_entropy:
+      assert f_out == softmax
 
     Nl = len(Nh)
     self.Nl = Nl # numero layer
@@ -84,16 +89,11 @@ class MLP():
     """
     Date attivazioni e coefficenti errore calcolo gradiente
     """
+    Nl = self.Nl
     x,y = p
-    grad = [None]*(self.Nl+1) # gradienti w[m] = w[m] + lr*grad[m]
-
     a, v = self.forward_pass( x ) # calcoli attivazione e potenziale
     d = self.backward_pass( y, a, v ) # calcoli coeff di propagazionie
-
-    Nl = self.Nl
-    for m in range(Nl+1):
-      grad[m] = np.dot( d[m+1] , np.vstack( ( a[m], 1 ) ).T )
-    
+    grad = [ np.dot( d[m+1] , np.vstack( ( a[m], 1 ) ).T ) for m in range(Nl+1) ]
     return np.array(grad)
 
   def epoch_batch_BP(self, train_x:np.ndarray, train_y:np.ndarray, eta, a=1e-12,l=1e-12):
@@ -105,8 +105,8 @@ class MLP():
     a: momentum rate
     l: thickonov regularization rate
     """
-    old_deltas = np.array( [np.zeros(self.w[i].shape) for i in range(self.Nl+1)] ) # momento
-    p = np.array( [np.zeros(self.w[i].shape) for i in range(self.Nl+1)] ) # somma parziale gradienti
+    old_deltas = np.array( [ np.zeros(self.w[i].shape) for i in range(self.Nl+1) ] ,dtype=object) # momento
+    p = np.array( [ np.zeros(self.w[i].shape) for i in range(self.Nl+1) ] ,dtype=object) # somma parziale gradienti
     N = np.size(train_x,axis=0) # numero sample in training set
 
     comp_grad = self.compute_gradient
@@ -116,7 +116,7 @@ class MLP():
     self.w += deltas
     old_deltas = deltas
   
-  def regression_train(self, train_x, train_y, eta, a=1e-12, l=1e-12, val_x=None, val_y=None, max_epochs=300, tresh=.01, epoch_f=None, shuffle_data=True, measure_interval=10):
+  def train(self, train_x, train_y, eta, a=1e-12, l=1e-12, val_x=None, val_y=None, max_epochs=300, tresh=.01, epoch_f=None, shuffle_data=True, measure_interval=10):
     """
     Executes a maximum of max_epochs epochs of training using the function epoch_f in order to do regression of some function that maps input train_x->train_y.
     After each measure_interval epochs, mesures error on training set, and exits when training error falls below given treshold.
@@ -134,6 +134,9 @@ class MLP():
       if i % measure_interval == 0:
         i=int(i/measure_interval)
         outs_t = self.supply_sequence( train_x ) # actual outputs of the network
+        if outs_t.shape != train_y.shape:
+          outs_t = outs_t.reshape(train_y.shape)
+        assert outs_t.shape == train_y.shape
         e[i] = MSE(outs_t,train_y) # Mean Squared Error on training set
         if val_x is not None:
           outs_v = self.supply_sequence( val_x ) # actual outputs of the network
@@ -169,16 +172,19 @@ class MLP():
     U: sequence of input patterns.
     """
     sup = self.supply
-    return list( map( lambda u :float( sup(u) ), U ) )
+    return np.array(list( map( lambda u : sup(u) , U ) ))
   
+  """
+  alla fine questa non e' che serva davvero.....
   def classify(self,u):
-    """
     classify sample. To be written properly
     u: imput pattern
-    """
-    return -1 if float( self.supply(u) )<0 else 1
+    if self.f_out == softmax:
+      return -1 if float( self.supply(u) )<0 else 1
+  """
 
 """
+  questa andrebbe riscritta bellina come quella batch
   def epoch_online_BP(self, train_x:np.ndarray, train_y:np.ndarray, eta):
     ""
     Use all patterns in the given training set to execute an epoch of online training
@@ -194,17 +200,13 @@ class MLP():
         self.w[m] += eta * self.grad[m] 
 """
 
-
-
-
-
+"""
 def score(o,d): 
-  """
   percentage score of nework in binary classification task. To be written properly
   o: sequence of ouputs of the network, 
   d: sequence of desired outputs
-  """
   return ( o - d == 0).sum()/len(o)*100
+"""
 
 from itertools import product  
 
