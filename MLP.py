@@ -2,6 +2,7 @@
 #https://deepnotes.io/softmax-crossentropy
 
 import numpy as np
+import pandas as pd
 from IPython.display import clear_output
 from sklearn.utils import shuffle
 
@@ -10,9 +11,37 @@ from numpy import tanh
 from scipy.special import softmax
 ide = lambda x : np.copy(x)
 relu = lambda x: x*(x > 0)
+#softmax = lambda x: np.exp(x - logsumexp(x, keepdims=True)) # implementazione scipy special
+
+def to_categorical(y, num_classes=None, dtype='float32'): # code from keras implementation: keras.utils.to_categorical
+  """Converts a class vector (integers) to binary class matrix.
+  E.g. for use with categorical_crossentropy.
+  Args:
+      y: class vector to be converted into a matrix
+          (integers from 0 to num_classes).
+      num_classes: total number of classes. If `None`, this would be inferred
+        as the (largest number in `y`) + 1.
+      dtype: The data type expected by the input. Default: `'float32'`.
+  Returns:
+      A binary matrix representation of the input. The classes axis is placed
+      last.
+  """
+  y = np.array(y, dtype='int')
+  input_shape = y.shape
+  if input_shape and input_shape[-1] == 1 and len(input_shape) > 1:
+    input_shape = tuple(input_shape[:-1])
+  y = y.ravel()
+  if not num_classes:
+    num_classes = np.max(y) + 1
+  n = y.shape[0]
+  categorical = np.zeros((n, num_classes), dtype=dtype)
+  categorical[np.arange(n), y] = 1
+  output_shape = input_shape + (num_classes,)
+  categorical = np.reshape(categorical, output_shape)
+  return categorical
 
 # funzioni loss
-squared_error = lambda y,d:  np.linalg.norm(y - d) ** 2
+squared_error = lambda y,d:  np.linalg.norm(y - d) ** 2 # categorical cross-entropy
 cross_entropy = lambda y,d: -np.sum( d * np.log( y + np.finfo(float).eps ) )
 
 MSE = lambda x,y: np.mean( np.square( x-y ) )
@@ -31,10 +60,10 @@ def derivative(f):
 
 class MLP():
 
-  def __init__(self, Nh=[10], Nu=1, Ny=1, f=tanh, f_out=ide ,w_scale=.05, loss=squared_error):
+  def __init__(self, Nh=[10], Nu=1, Ny=1, f=tanh, f_out=ide , w_range=.7, w_scale=2, loss=squared_error, error=MSE):
     
     if loss == cross_entropy:
-      assert f_out == softmax
+      assert f_out == softmax, 'if using cross-entropy loss, must use softmax as output activation function'
 
     Nl = len(Nh)
     self.Nl = Nl # numero layer
@@ -48,6 +77,7 @@ class MLP():
 
     self.l = loss # funzione loss (y-d)**2
     self.dl = derivative(loss) # (y-d)
+    self.error = error
 
     # a[m+1] = f[m]( w[m]*a[m] ) a[m] = (Nh,1) a[m+1] = (Nh,1) w[m] = (Nh,Nh)
     self.w[0] = ( 2*np.random.rand( Nh[0], Nu+1 ) -1 )*w_scale # pesi input-to-primo-layer, ultima colonna e' bias. w[i,j] in [-1,1]
@@ -74,7 +104,7 @@ class MLP():
 
   def backward_pass(self, y, a, v): 
     """
-    Calcolo coefficenti di propagazione errore
+    Dati attivazioni e potenziali calcolo coefficenti di propagazione errore
     """
     Nl=self.Nl
     d = [None]*(self.Nl+2) # coefficenti di propagazione d[m]
@@ -87,7 +117,7 @@ class MLP():
 
   def compute_gradient(self,p): 
     """
-    Date attivazioni e coefficenti errore calcolo gradiente
+    Date attivazioni, potenziali e coefficenti propagazione errore calcolo gradiente
     """
     Nl = self.Nl
     x,y = p
@@ -123,13 +153,13 @@ class MLP():
     Returns error at each mesurement calculated both on training and validation set, so you can plot them.
     Could use some early stopping mechanism through validation error.
     """
-    e = [None]*max_epochs
+    e = [None]*max_epochs 
     v = [None]*max_epochs
     for i in range(max_epochs):
       if shuffle_data==True:
         train_x, train_y = shuffle(train_x, train_y)
       
-      epoch_f( train_x, train_y, eta, a=a, l=l )
+      epoch_f( train_x, train_y, eta, a=a, l=l ) # epoca di allenamento
       
       if i % measure_interval == 0:
         i=int(i/measure_interval)
@@ -137,10 +167,10 @@ class MLP():
         if outs_t.shape != train_y.shape:
           outs_t = outs_t.reshape(train_y.shape)
         assert outs_t.shape == train_y.shape
-        e[i] = MSE(outs_t,train_y) # Mean Squared Error on training set
+        e[i] = self.error(outs_t,train_y) # Mean Squared Error on training set
         if val_x is not None:
           outs_v = self.supply_sequence( val_x ) # actual outputs of the network
-          v[i] = MSE(outs_v,val_y) # Mean Squared Error on training set
+          v[i] = self.error(outs_v,val_y) # Mean Squared Error on training set
         if i>2 and ( e[i] < tresh or e[i]>e[i-1]):  # we quit training when error on training set falls below treshold
           print(f'final error: {e[i]}')
           break
@@ -173,6 +203,10 @@ class MLP():
     """
     sup = self.supply
     return np.array(list( map( lambda u : sup(u) , U ) ))
+  
+  def test(self, X, Y):
+    outs = self.supply_sequence(X)
+    return self.error(outs, Y)
   
   """
   alla fine questa non e' che serva davvero.....
@@ -208,13 +242,15 @@ def score(o,d):
   return ( o - d == 0).sum()/len(o)*100
 """
 
+"""
 from itertools import product  
-
 def combinations(Nh,Nls):
-  res = []
-  for Nl in Nls :
-    res.extend(list(product(Nh,repeat=Nl)))
-  return res
+    x=[]
+    for Nl in Nls :
+        x.append(list(permutations(Nh_monk,Nls_monk)))
+    
+    combinedList=[*x[0],*x[1],*x[2]]
+    return combinedList
 
 Nh = [2, 3, 4]
 Nls = [2, 3]
@@ -238,3 +274,5 @@ def k_fold_CV(train_x, train_y, k, n_init, grid):
         # allena
         # testa
         # salva la migliore configurazione
+
+"""
