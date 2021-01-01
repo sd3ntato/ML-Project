@@ -80,10 +80,10 @@ class MLP():
     self.error = error
 
     # a[m+1] = f[m]( w[m]*a[m] ) a[m] = (Nh,1) a[m+1] = (Nh,1) w[m] = (Nh,Nh)
-    self.w[0] = ( 2*np.random.rand( Nh[0], Nu+1 ) -1 )*w_scale # pesi input-to-primo-layer, ultima colonna e' bias. w[i,j] in [-1,1]
+    self.w[0] = ( 2*np.random.rand( Nh[0], Nu+1 ) -1 )*w_range # pesi input-to-primo-layer, ultima colonna e' bias. w[i,j] in [-1,1]
     for i in range(1, Nl):
-      self.w[i] = ( 2*np.random.rand( Nh[i], Nh[i-1] + 1 )-1 )*w_scale # pesi layer-to-layer, ultima colonna e' bias
-    self.w[Nl] = ( 2*np.random.rand( Ny, Nh[Nl-1] + 1) -1 )*w_scale # pesi ultimo-layer-to-output, ultima colonna e' bias
+      self.w[i] = ( 2*np.random.rand( Nh[i], Nh[i-1] + 1 )-1 )*w_range # pesi layer-to-layer, ultima colonna e' bias
+    self.w[Nl] = ( 2*np.random.rand( Ny, Nh[Nl-1] + 1) -1 )*w_range # pesi ultimo-layer-to-output, ultima colonna e' bias
 
   def forward_pass(self, u:np.ndarray ): 
     """
@@ -175,7 +175,7 @@ class MLP():
           print(f'final error: {e[i]}')
           break
         print(f'training error atm: {e[i]}') 
-        clear_output(wait=True)
+        #clear_output(wait=True)
     return e, v
 
   def supply(self, u):
