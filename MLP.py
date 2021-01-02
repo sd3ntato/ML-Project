@@ -57,13 +57,41 @@ def derivative(f):
   elif f == squared_error or f == cross_entropy:
     return lambda d,y: d-y
 
+def get_f(f):
+  if f=='relu':
+    return relu
+  elif f=='tanh':
+    return tanh
+
+def get_f_out(f):
+  if f=='ide':
+    return ide
+  elif f=='softmax':
+    return softmax
+
+def get_loss(f):
+  if f=='squared_error':
+    return squared_error
+  elif f=='cross_entropy':
+    return cross_entropy
+
+def get_error(f):
+  if f=='MSE':
+    return MSE
+  elif f=='cross_entropy':
+    return cross_entropy
 
 class MLP():
 
-  def __init__(self, Nh=[10], Nu=1, Ny=1, f=tanh, f_out=ide , w_range=.7, w_scale=2, loss=squared_error, error=MSE):
+  def __init__(self, Nh=[10], Nu=1, Ny=1, f='tanh', f_out='ide' , w_range=.7, w_scale=2, loss='squared_error', error='MSE'):
     
-    if loss == cross_entropy:
-      assert f_out == softmax, 'if using cross-entropy loss, must use softmax as output activation function'
+    if loss == 'cross_entropy':
+      assert f_out == 'softmax', 'if using cross-entropy loss, must use softmax as output activation function'
+
+    f = get_f(f)
+    f_out = get_f_out(f_out)
+    loss = get_loss(loss)
+    error = get_error(error)
 
     Nl = len(Nh)
     self.Nl = Nl # numero layer
