@@ -2,9 +2,8 @@ import pandas as pd
 import numpy as np
 from itertools import permutations
 from itertools import product
-from MLP import MLP, cross_entropy
+from MLP import MLP, cross_entropy, to_categorical
 from scipy.special import softmax
-from copy import deepcopy
 from IPython.display import clear_output
 
 
@@ -28,7 +27,6 @@ def get_configurations(params):
     x = [ dict( zip( params[0], v) ) for v in product( *params[0].values() ) ]
     return x
 
-
 def read_dataset( filename='monks-1.train', id_col=8 ):
     # leggo dataset
     data = pd.read_csv( filename, sep=' ', index_col=id_col ) # read dataset
@@ -41,15 +39,12 @@ def get_fold(folds,i):
     val_set = folds[i]  
     return train_set, val_set
 
-def xy_monk1(set1):
-    tr_x,tr_y = train_set[:,1:] , train_set[:,:1] # 
-    tr_y = to_categorical(tr_y).reshape(-1,2,1)
-    val_x,val_y = val_set[:,1:] , val_set[:,:1]  
-    val_y = to_categorical(val_y).reshape(-1,2,1)
+def xy_monk1(set):
+    x,y = set[:,1:] , set[:,:1] # 
+    y = to_categorical(y).reshape(-1,2,1)
+    return x,y
 
-
-
-def k_fold_CV(data, params, k=4, n_init=10, max_epochs=300, tresh=.1,xy=xy_monk1):
+def k_fold_CV(data, params, k=4, n_init=10, max_epochs=300, tresh=.1, measure_interval=10, xy=xy_monk1):
     folds = np.array_split(data, k)  #split data into 4 folds
     configurations = get_configurations(params) # given the params grid, get all the possible configurations
     best_error = np.inf # error given by configuraion that gives the best error atm
@@ -63,18 +58,17 @@ def k_fold_CV(data, params, k=4, n_init=10, max_epochs=300, tresh=.1,xy=xy_monk1
         for n in range(n_init):
             print(f'initialization {n}')
             n = MLP(Nh = c['hidden_units'], Nu = c['Nu'], Ny= c['Ny'], f = c['activation'], f_out=c['f_out'], w_range=c['weights_range'], w_scale=c['weights_scale'], loss=c['loss'], error=c['error']) # inizializzo matrice pesi
-            init_w = deepcopy( n.w ) # salvo una copia dei pesi iniziali
+            init_w = np.copy( n.w ) # salvo una copia dei pesi iniziali
             val_error = [None]*k # we save validation error for each fold
             # train and test the network on each fold
             for i in range(k):
                 print(f'fold {i}')
                 train_set, val_set = get_fold(folds,i) # get data form i-th fold
                 tr_x, tr_y = xy(train_set)
-                val_x, val_y = xy(train_set)
+                val_x, val_y = xy(val_set)
                 n.w = init_w # reset weights to initial values
-                n.train( tr_x, tr_y,  c['learning_rate'], a= c['alpha'], l=c['lambda'], val_x=val_x, val_y=val_y, max_epochs=max_epochs, tresh=tresh, epoch_f=n.epoch_batch_BP, shuffle_data=False, measure_interval=5 ) # train the network 
+                n.train( tr_x, tr_y,  c['learning_rate'], a= c['alpha'], l=c['lambda'], max_epochs=max_epochs, tresh=tresh, epoch_f=n.epoch_batch_BP, shuffle_data=False, measure_interval=measure_interval ) # train the network 
                 val_error[i] = n.test(val_x, val_y) # test network on this fold and save the resulting error
-                
             val_error = np.mean(val_error) # validation medio sui k fold
             if val_error < best_error_init:
                 best_error_init = val_error

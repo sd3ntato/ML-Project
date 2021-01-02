@@ -73,17 +73,17 @@ class MLP():
 
     self.f = [ide] + ([f]*Nl) + [f_out] #[f_in, f,f,f,f ,f_out] f[m](a[m])
     self.df = [ derivative(f) for f in self.f] # df[m](v[m])
-    self.w = np.array([None]*(Nl+1)) # matrici dei pesi 
+    self.w = np.array([None]*(Nl+1),dtype=object) # matrici dei pesi 
 
     self.l = loss # funzione loss (y-d)**2
     self.dl = derivative(loss) # (y-d)
     self.error = error
 
     # a[m+1] = f[m]( w[m]*a[m] ) a[m] = (Nh,1) a[m+1] = (Nh,1) w[m] = (Nh,Nh)
-    self.w[0] = ( 2*np.random.rand( Nh[0], Nu+1 ) -1 )*w_range # pesi input-to-primo-layer, ultima colonna e' bias. w[i,j] in [-1,1]
+    self.w[0] = np.round( ( 2*np.random.rand( Nh[0], Nu+1 ) -1 )*w_range, w_scale )# pesi input-to-primo-layer, ultima colonna e' bias. w[i,j] in [-1,1]
     for i in range(1, Nl):
-      self.w[i] = ( 2*np.random.rand( Nh[i], Nh[i-1] + 1 )-1 )*w_range # pesi layer-to-layer, ultima colonna e' bias
-    self.w[Nl] = ( 2*np.random.rand( Ny, Nh[Nl-1] + 1) -1 )*w_range # pesi ultimo-layer-to-output, ultima colonna e' bias
+      self.w[i] = np.round( ( 2*np.random.rand( Nh[i], Nh[i-1] + 1 )-1 )*w_range, w_scale )# pesi layer-to-layer, ultima colonna e' bias
+    self.w[Nl] = np.round( ( 2*np.random.rand( Ny, Nh[Nl-1] + 1) -1 )*w_range, w_scale )# pesi ultimo-layer-to-output, ultima colonna e' bias
 
   def forward_pass(self, u:np.ndarray ): 
     """
@@ -168,13 +168,13 @@ class MLP():
           outs_t = outs_t.reshape(train_y.shape)
         assert outs_t.shape == train_y.shape
         e[i] = self.error(outs_t,train_y) # Mean Squared Error on training set
+        print(f'training error atm: {e[i]}') 
         if val_x is not None:
           outs_v = self.supply_sequence( val_x ) # actual outputs of the network
           v[i] = self.error(outs_v,val_y) # Mean Squared Error on training set
-        if i>2 and ( e[i] < tresh or e[i]>e[i-1]):  # we quit training when error on training set falls below treshold
+        if i>0 and ( e[i] < tresh or e[i]>e[i-1]):  # we quit training when error on training set falls below treshold
           print(f'final error: {e[i]}')
           break
-        print(f'training error atm: {e[i]}') 
         #clear_output(wait=True)
     return e, v
 
