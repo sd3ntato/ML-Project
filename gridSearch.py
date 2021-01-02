@@ -39,12 +39,7 @@ def get_fold(folds,i):
     val_set = folds[i]  
     return train_set, val_set
 
-def xy_monk1(set):
-    x,y = set[:,1:] , set[:,:1] # 
-    y = to_categorical(y).reshape(-1,2,1)
-    return x,y
-
-def k_fold_CV(data, params, k=4, n_init=10, max_epochs=300, tresh=.1, measure_interval=10, xy=xy_monk1):
+def k_fold_CV(data, params, k=4, n_init=10, max_epochs=300, tresh=.1, measure_interval=10, xy=None):
     folds = np.array_split(data, k)  #split data into 4 folds
     configurations = get_configurations(params) # given the params grid, get all the possible configurations
     best_error = np.inf # error given by configuraion that gives the best error atm
