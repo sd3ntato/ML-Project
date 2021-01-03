@@ -22,8 +22,6 @@ def combinations(Nh,Nls):
     return combinedList
 
 def get_configurations(params):
-    # w_init = [i["weights_init"] for i in params]
-    # w_scale = [i["weights_scale"] for i in params]
     x = [ dict( zip( params[0], v) ) for v in product( *params[0].values() ) ]
     return x
 
