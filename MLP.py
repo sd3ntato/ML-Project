@@ -1,12 +1,13 @@
 #http://machinelearningmechanic.com/deep_learning/2019/09/04/cross-entropy-loss-derivative.html
 #https://deepnotes.io/softmax-crossentropy
 
+# general imports
 import numpy as np
 import pandas as pd
-from IPython.display import clear_output
 from sklearn.utils import shuffle
+#from IPython.display import clear_output
 
-# funzioni attivazione
+# activation functions
 from numpy import tanh
 from scipy.special import softmax
 ide = lambda x : np.copy(x)
@@ -40,14 +41,17 @@ def to_categorical(y, num_classes=None, dtype='float32'): # code from keras impl
   categorical = np.reshape(categorical, output_shape)
   return categorical
 
-# funzioni loss
+# loss functions:
 squared_error = lambda y,d:  np.linalg.norm(y - d) ** 2 # categorical cross-entropy
 cross_entropy = lambda y,d: -np.sum( d * np.log( y + np.finfo(float).eps ) )
-
 MSE = lambda x,y: np.mean( np.square( x-y ) )
 
-
 def derivative(f):
+  """
+  When f is an activation function, returns derivative w.r.t. potential of activation
+  When f is a loss, returns derivative w.r.t. activation
+  When f is cross_entropy and activation of output units is softmax, maths say derivative of loss w.r.t potential is one returned
+  """
   if f == tanh:
     return lambda x: 1.0 - tanh(x)**2
   elif f == relu:
@@ -58,24 +62,36 @@ def derivative(f):
     return lambda d,y: d-y
 
 def get_f(f):
+  """
+  activation function: string->function
+  """ 
   if f=='relu':
     return relu
   elif f=='tanh':
     return tanh
 
 def get_f_out(f):
+  """
+  activation function of output units: string->function
+  """ 
   if f=='ide':
     return ide
   elif f=='softmax':
     return softmax
 
 def get_loss(f):
+  """
+  loss function: string->function
+  """ 
   if f=='squared_error':
     return squared_error
   elif f=='cross_entropy':
     return cross_entropy
 
 def get_error(f):
+  """
+  error function: string->function
+  """ 
   if f=='MSE':
     return MSE
   elif f=='cross_entropy':
@@ -84,7 +100,18 @@ def get_error(f):
 class MLP():
 
   def __init__(self, Nh=[10], Nu=1, Ny=1, f='tanh', f_out='ide' , w_range=.7, w_scale=2, loss='squared_error', error='MSE'):
-    
+    """
+    Nh: number of hidden units for each layer
+    Nu: number of input units
+    Ny: number of output units
+    f: activation function of hidden units
+    f_out: activation function of output units
+    w_range: initial range of values for entries in weight matrices
+    w_range: initial number of decimals of values for entries in weight matrices
+    loss: loss functions
+    error: error function
+    """ 
+      
     if loss == 'cross_entropy':
       assert f_out == 'softmax', 'if using cross-entropy loss, must use softmax as output activation function'
 
@@ -115,14 +142,17 @@ class MLP():
 
   def forward_pass(self, u:np.ndarray ): 
     """
-    Calcolo attivazioni e potenziali di attivazione
+    compute activations e activation potentials
     """
     Nl = self.Nl
     v = [None]*(Nl+2) # potenziali attivazione v[m]
     a = [None]*(Nl+2) # attivazioni a[m] = f[m](v[m])
 
+    # reshape input if needed
     if not u.shape == (self.Nu,1): 
       u = u.reshape((self.Nu,1))
+
+    # calculate activation and potentials for units in each layer
     v[0] = u
     a[0] = u # attivazione untia' input e' l'input esterno
     for m in range(self.Nl+1): 
@@ -132,26 +162,41 @@ class MLP():
 
   def backward_pass(self, y, a, v): 
     """
-    Dati attivazioni e potenziali calcolo coefficenti di propagazione errore
+    given activations and potentials compute error-propagation-coefficents
     """
     Nl=self.Nl
+
     d = [None]*(self.Nl+2) # coefficenti di propagazione d[m]
+
+    # reshape desired-output if needed
     if not y.shape == (self.Ny,1):
       y = y.reshape((self.Ny,1))
+
+    # calculate error-propagation-coefficents for units in each layer
     d[Nl+1] = self.dl( y , a[Nl+1]) * self.df[Nl+1](v[Nl+1]) # coeff prop output
     for m in range(Nl,-1,-1):
       d[m] =  np.dot(  np.delete( self.w[m].T , -1, 0)  , d[m+1]  ) * self.df[m](v[m])  # devo levare la riga (colonna) dei bias qui 
+
     return d
 
   def compute_gradient(self,p): 
     """
-    Date attivazioni, potenziali e coefficenti propagazione errore calcolo gradiente
+    compute gradient over pattern p
     """
     Nl = self.Nl
+
+    # pattern is composed of input and relative desired output
     x,y = p
-    a, v = self.forward_pass( x ) # calcoli attivazione e potenziale
-    d = self.backward_pass( y, a, v ) # calcoli coeff di propagazionie
+
+    # compute activations and potentials
+    a, v = self.forward_pass( x ) 
+
+    # compute error-propagation-coefficents
+    d = self.backward_pass( y, a, v ) 
+
+    #compute gradient for each layer
     grad = [ np.dot( d[m+1] , np.vstack( ( a[m], 1 ) ).T ) for m in range(Nl+1) ]
+
     return np.array(grad)
 
   def epoch_batch_BP(self, train_x:np.ndarray, train_y:np.ndarray, eta, a=1e-12,l=1e-12):
@@ -163,47 +208,74 @@ class MLP():
     a: momentum rate
     l: thickonov regularization rate
     """
-    old_deltas = np.array( [ np.zeros(self.w[i].shape) for i in range(self.Nl+1) ] ,dtype=object) # momento
-    p = np.array( [ np.zeros(self.w[i].shape) for i in range(self.Nl+1) ] ,dtype=object) # somma parziale gradienti
-    N = np.size(train_x,axis=0) # numero sample in training set
+    old_deltas = np.array( [ np.zeros(self.w[i].shape) for i in range(self.Nl+1) ] ,dtype=object) # momentum
+    p = np.array( [ np.zeros(self.w[i].shape) for i in range(self.Nl+1) ] ,dtype=object) # parzial sum of gradients
+    N = np.size(train_x,axis=0) # number of patterns in training set
 
+    # calculate gradient summing over partial gradients
     comp_grad = self.compute_gradient
     p = sum( map( comp_grad, zip(train_x,train_y ) ) )/N
 
+    #compute deltas
     deltas = eta * p + a * old_deltas - l * self.w
+
+    # uptdate weights and old_deltas values
     self.w += deltas
     old_deltas = deltas
   
-  def train(self, train_x, train_y, eta, a=1e-12, l=1e-12, val_x=None, val_y=None, max_epochs=300, tresh=.01, epoch_f=None, shuffle_data=True, measure_interval=10):
+  def train(self, train_x, train_y, eta, a=1e-12, l=1e-12, val_x=None, val_y=None, max_epochs=300, tresh=.01, mode='batch', shuffle_data=True, measure_interval=10, verbose=True):
     """
     Executes a maximum of max_epochs epochs of training using the function epoch_f in order to do regression of some function that maps input train_x->train_y.
     After each measure_interval epochs, mesures error on training set, and exits when training error falls below given treshold.
     Returns error at each mesurement calculated both on training and validation set, so you can plot them.
     Could use some early stopping mechanism through validation error.
     """
-    e = [None]*max_epochs 
-    v = [None]*max_epochs
+    e = [None]*max_epochs  # array of training errors for each epoch
+    v = [None]*max_epochs # array of validation errors for each epoch
+    
+    # set function that does training epoch
+    epoch_f=None 
+    if mode=='batch':
+      epoch_f = self.epoch_batch_BP
+    
+    # execute epochs of training until training is complete or max_epochs epochs are executed (or training error diverges)
     for i in range(max_epochs):
+
+      # shuffle training set if needed
       if shuffle_data==True:
         train_x, train_y = shuffle(train_x, train_y)
       
+      # execute an epoch of training
       epoch_f( train_x, train_y, eta, a=a, l=l ) # epoca di allenamento
       
+      # after each measure_interval epochs of training do calculation:
+      # decide if training is done and mesure training and validation error
       if i % measure_interval == 0:
-        i=int(i/measure_interval)
-        outs_t = self.supply_sequence( train_x ) # actual outputs of the network
-        if outs_t.shape != train_y.shape:
-          outs_t = outs_t.reshape(train_y.shape)
-        assert outs_t.shape == train_y.shape
-        e[i] = self.error(outs_t,train_y) # Mean Squared Error on training set
-        print(f'training error atm: {e[i]}') 
+        idx_m = int(i/measure_interval) # number of mesurements done 
+
+        # mesure error on validation set if validatin set is provided
         if val_x is not None:
-          outs_v = self.supply_sequence( val_x ) # actual outputs of the network
-          v[i] = self.error(outs_v,val_y) # Mean Squared Error on training set
-        if i>0 and ( e[i] < tresh or e[i]>e[i-1]):  # we quit training when error on training set falls below treshold
-          print(f'final error: {e[i]}')
+          outs_v = self.supply_sequence( val_x ) # actual outputs of the network on validation set
+          if outs_v.shape != val_y.shape:
+            outs_v = outs_v.reshape(val_y.shape) # reshape when needed or error calculation doesn't work
+          assert outs_v.shape == val_y.shape
+          v[idx_m] = self.error(outs_v,val_y) # Mean Squared Error on training set
+
+        # measure error on training set to decide if training is complete
+        outs_t = self.supply_sequence( train_x ) # actual outputs of the network on training set
+        if outs_t.shape != train_y.shape:
+          outs_t = outs_t.reshape(train_y.shape) # reshape when neede or error calculation doesn't work
+        assert outs_t.shape == train_y.shape
+        e[idx_m] = self.error(outs_t,train_y) # error on training set
+        if verbose: print(f'training error atm: {e[idx_m]}') 
+        
+        # if training is complete exit the loop. training is complete when training error falls below treshold tresh or 
+        # error on training set is getting worse due to bad training parameters
+        if i>0 and ( e[idx_m] < tresh or e[idx_m] > e[idx_m-1]):  # we quit training when error on training set falls below treshold
+          if verbose: print(f'final error: {e[idx_m]}')
           break
-        #clear_output(wait=True)
+        # clear_output(wait=True)
+
     return e, v
 
   def supply(self, u):
@@ -214,9 +286,11 @@ class MLP():
     """
     a = [None]*(self.Nl+2) # attivazioni a[m] = f[m](v[m])
 
+    # reshape input if needed
     if not u.shape == (self.Nu,1):
       u = u.reshape((self.Nu,1))
     
+    # calculate activation of units in each layer
     a[0] = u
     for m in range(self.Nl+1):
       a[m+1] = self.f[m+1]( np.dot( self.w[m] , np.vstack((a[m],1)) ) )
@@ -229,6 +303,7 @@ class MLP():
       return [float(self.predict(u)) for u in tx]
     U: sequence of input patterns.
     """
+    # calculate sequence of outputs of the network when provided when given sequence of inputs
     sup = self.supply
     return np.array(list( map( lambda u : sup(u) , U ) ))
   

@@ -7,6 +7,7 @@ from scipy.special import softmax
 from IPython.display import clear_output
 
 
+"""
 Nh_monk=[10,25,50]
 Nls_monk=1
 
@@ -20,55 +21,98 @@ def combinations(Nh,Nls):
     
     combinedList=[*x[0],*x[1]]
     return combinedList
+"""
 
 def get_configurations(params):
+    """
+    given parameters dictionary, return all possible configurations of parametes
+    """
     x = [ dict( zip( params[0], v) ) for v in product( *params[0].values() ) ]
     return x
 
 def read_dataset( filename='monks-1.train', id_col=8 ):
-    # leggo dataset
+    """
+    read dataset by given file name. To be written properly
+    """
     data = pd.read_csv( filename, sep=' ', index_col=id_col ) # read dataset
     data = data.drop(columns=data.columns[0]) # drop index column
     data = data.to_numpy() 
     return data
 
 def get_fold(folds,i):
+    """
+    Given folds of data, returns training set obtained by aggregating all folds but i-th one, that is instead used as and validation set
+    """
+    # training set is all but i-th fold
     train_set = np.concatenate(folds[:i] + folds[i+1:])
+
+    # i-th fold is validation set
     val_set = folds[i]  
     return train_set, val_set
 
 def k_fold_CV(data, params, k=4, n_init=10, max_epochs=300, tresh=.1, measure_interval=10, xy=None):
-    folds = np.array_split(data, k)  #split data into 4 folds
-    configurations = get_configurations(params) # given the params grid, get all the possible configurations
+    """
+    Grid search of parameters of the net for given data.
+    First divides the data into k folds, then tries all possible congigurations. For each of them 
+    computes validation error on one of the folds after training on remaining data by n_init initializations.
+    Best configutation is the one that gave best average validation error.
+    """
+    #split data into 4 folds
+    folds = np.array_split(data, k)  
+
+    # given the params grid, get all the possible configurations
+    configurations = get_configurations(params)
+
+    # variables for keeping the best configuration
     best_error = np.inf # error given by configuraion that gives the best error atm
     best_conf = None #  configuraion that gives the best error atm
-    # we try all the configurations, for each of them we compute error of n_init MLP 
+
+    # try all the configurations, for each of them we compute error of n_init MLP 
     # initializations on all of the folds.
-    print(f'testing {len(configurations)} configurations')
+    print(f'testing {len(configurations)} configurations') # debugging
     for idx_c,c in enumerate(configurations):
         best_error_init = np.inf  # best error given by some initialization of an MLP with this configuration
-        print(f'testing configuration {c}, {idx_c}/{len(configurations)}')
+        print(f'testing configuration {c}, {idx_c}/{len(configurations)}') # debugging
+
+        # test the configuration n_init times on every fold
         for n in range(n_init):
-            print(f'initialization {n}')
+            print(f'initialization {n}') # debugging
+
+            # initialize a net with the params in this configuration
             n = MLP(Nh = c['hidden_units'], Nu = c['Nu'], Ny= c['Ny'], f = c['activation'], f_out=c['f_out'], w_range=c['weights_range'], w_scale=c['weights_scale'], loss=c['loss'], error=c['error']) # inizializzo matrice pesi
             init_w = np.copy( n.w ) # salvo una copia dei pesi iniziali
+
+            # for each fold, train the network and save the validation error on k-th fold
             val_error = [None]*k # we save validation error for each fold
-            # train and test the network on each fold
             for i in range(k):
-                print(f'fold {i}')
-                train_set, val_set = get_fold(folds,i) # get data form i-th fold
+                print(f'fold {i}') # debugging
+                
+                # get data form i-th fold
+                train_set, val_set = get_fold(folds,i) 
+
+                # split patterns into input and target output
                 tr_x, tr_y = xy(train_set)
                 val_x, val_y = xy(val_set)
-                n.w = init_w # reset weights to initial values
+
+                # reset weights to initial values
+                n.w = init_w 
                 n.train( tr_x, tr_y,  c['learning_rate'], a= c['alpha'], l=c['lambda'], max_epochs=max_epochs, tresh=tresh, epoch_f=n.epoch_batch_BP, shuffle_data=False, measure_interval=measure_interval ) # train the network 
+
+                # compute validation error and save it
                 val_error[i] = n.test(val_x, val_y) # test network on this fold and save the resulting error
-            val_error = np.mean(val_error) # validation medio sui k fold
+            
+            # compute mean validation error on the k folds, save the one given by the best initialization
+            val_error = np.mean(val_error) 
             if val_error < best_error_init:
                 best_error_init = val_error
+        
         # best_error_init errore minimo che ho trovato con questa configurazione
+        # after computing error of best initialization with this configuration, compare it with other configurations and save better one
         if best_error_init < best_error:
             best_error = best_error_init
             best_conf = c
-        clear_output(wait=True)
+
+        clear_output(wait=True) # debugging
+
     return best_conf, best_error
         
