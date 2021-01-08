@@ -83,6 +83,12 @@ def k_fold_CV(data, params, k=4, n_init=10, max_epochs=300, tresh=.1, measure_in
             init_w = np.copy( n.w ) # salvo una copia dei pesi iniziali
 
             # for each fold, train the network and save the validation error on k-th fold
+            # could be ez turn to multithread. maybe a trhread for each init would be better, but then need to consider concurrency...
+            # p=mp.Pool(4)
+            # p.map(do_print,range(0,10)) # range(0,1000) if you want to replicate your example
+            # p.close()
+            # p.join()
+
             val_error = [None]*k # we save validation error for each fold
             for i in range(k):
                 print(f'fold {i}') # debugging
@@ -96,7 +102,7 @@ def k_fold_CV(data, params, k=4, n_init=10, max_epochs=300, tresh=.1, measure_in
 
                 # reset weights to initial values
                 n.w = init_w 
-                n.train( tr_x, tr_y,  c['learning_rate'], a= c['alpha'], l=c['lambda'], max_epochs=max_epochs, tresh=tresh, epoch_f=n.epoch_batch_BP, shuffle_data=False, measure_interval=measure_interval ) # train the network 
+                n.train( tr_x, tr_y,  c['learning_rate'], a= c['alpha'], l=c['lambda'], max_epochs=max_epochs, tresh=tresh, mode="batch", shuffle_data=False, measure_interval=measure_interval ) # train the network 
 
                 # compute validation error and save it
                 val_error[i] = n.test(val_x, val_y) # test network on this fold and save the resulting error
