@@ -75,6 +75,8 @@ def k_fold_CV(data, params, k=4, n_init=10, max_epochs=300, tresh=.1, measure_in
         print(f'testing configuration {c}, {idx_c}/{len(configurations)}') # debugging
 
         # test the configuration n_init times on every fold
+        # this could be done with multithreading 
+        # min( list( p.map(do_print,range(0,10)) ) )
         for n in range(n_init):
             print(f'initialization {n}') # debugging
 
@@ -83,9 +85,9 @@ def k_fold_CV(data, params, k=4, n_init=10, max_epochs=300, tresh=.1, measure_in
             init_w = np.copy( n.w ) # salvo una copia dei pesi iniziali
 
             # for each fold, train the network and save the validation error on k-th fold
-            # could be ez turn to multithread. maybe a trhread for each init would be better, but then need to consider concurrency...
+            # could be turned to multithread but network is same for each fold and that is a problem. maybe a trhread for each init would be better, but then need to consider concurrency... otherwise make k copies of the network.
             # p=mp.Pool(4)
-            # p.map(do_print,range(0,10)) # range(0,1000) if you want to replicate your example
+            # p.map(do_print,range(0,10)) 
             # p.close()
             # p.join()
 

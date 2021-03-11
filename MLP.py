@@ -126,9 +126,9 @@ class MLP():
     self.Ny = Ny # unita' output
     self.Nh = Nh # unita' interne
 
-    self.f = [ide] + ([f]*Nl) + [f_out] #[f_in, f,f,f,f ,f_out] f[m](a[m])
+    self.f = [ ide ] + ( [f] * Nl ) + [ f_out ] #[f_in, f,f,f,f ,f_out] f[m](a[m])
     self.df = [ derivative(f) for f in self.f] # df[m](v[m])
-    self.w = np.array([None]*(Nl+1),dtype=object) # matrici dei pesi 
+    self.w = np.array( [None]*(Nl+1), dtype=object ) # matrici dei pesi 
 
     self.l = loss # funzione loss (y-d)**2
     self.dl = derivative(loss) # (y-d)
@@ -142,7 +142,7 @@ class MLP():
 
   def forward_pass(self, u:np.ndarray ): 
     """
-    compute activations e activation potentials
+    compute activations and activation potentials
     """
     Nl = self.Nl
     v = [None]*(Nl+2) # potenziali attivazione v[m]
@@ -152,11 +152,11 @@ class MLP():
     if not u.shape == (self.Nu,1): 
       u = u.reshape((self.Nu,1))
 
-    # calculate activation and potentials for units in each layer
+    # compute activation and potentials for units in each layer
     v[0] = u
-    a[0] = u # attivazione untia' input e' l'input esterno
+    a[0] = u # activation of input units is external input
     for m in range(self.Nl+1): 
-      v[m+1] =  np.dot( self.w[m] , np.vstack((a[m],1)) ) # attivazione untia' di bias sempre 1 #
+      v[m+1] =  np.dot( self.w[m] , np.vstack((a[m],1)) ) # activation of bias units is always 1
       a[m+1] = self.f[m+1](v[m+1])
     return a,v
 
@@ -166,16 +166,16 @@ class MLP():
     """
     Nl=self.Nl
 
-    d = [None]*(self.Nl+2) # coefficenti di propagazione d[m]
+    d = [None]*(self.Nl+2) # error-propagation-coefficents d[m]
 
     # reshape desired-output if needed
     if not y.shape == (self.Ny,1):
       y = y.reshape((self.Ny,1))
 
     # calculate error-propagation-coefficents for units in each layer
-    d[Nl+1] = self.dl( y , a[Nl+1]) * self.df[Nl+1](v[Nl+1]) # coeff prop output
+    d[Nl+1] = self.dl( y , a[Nl+1]) * self.df[Nl+1](v[Nl+1]) # error-propagation-coefficents of output units
     for m in range(Nl,-1,-1):
-      d[m] =  np.dot(  np.delete( self.w[m].T , -1, 0)  , d[m+1]  ) * self.df[m](v[m])  # devo levare la riga (colonna) dei bias qui 
+      d[m] =  np.dot(  np.delete( self.w[m].T , -1, 0)  , d[m+1]  ) * self.df[m](v[m])  # must get row (column) of bias weights out of the computation of propagation coefficents
 
     return d
 
@@ -194,32 +194,35 @@ class MLP():
     # compute error-propagation-coefficents
     d = self.backward_pass( y, a, v ) 
 
-    #compute gradient for each layer
+    #compute gradient for each layer. To siumlate bias activation, i add to activations a 1 at the bottom
     grad = [ np.dot( d[m+1] , np.vstack( ( a[m], 1 ) ).T ) for m in range(Nl+1) ]
 
     return np.array(grad)
 
   def epoch_batch_BP(self, train_x:np.ndarray, train_y:np.ndarray, eta, a=1e-12,l=1e-12):
     """
-    Use all patterns in the given training set to execute an epoch of batch training
+    Use all patterns in the given training set to execute an epoch of batch training with (possibly thickonov regularization)
     train_x : input in training set
     train_y : output in training set
     eta: learning rate
     a: momentum rate
     l: thickonov regularization rate
     """
-    old_deltas = np.array( [ np.zeros(self.w[i].shape) for i in range(self.Nl+1) ] ,dtype=object) # momentum
-    p = np.array( [ np.zeros(self.w[i].shape) for i in range(self.Nl+1) ] ,dtype=object) # parzial sum of gradients
+
+  ###   QUESTA NON VA BENE. non serve preallocare p, old_deltas sempre zero
+
+    old_deltas = np.array( [ np.zeros(self.w[i].shape) for i in range(self.Nl+1) ] ,dtype=object) # prevous delta for momentum computation
+    p = np.array( [ np.zeros(self.w[i].shape) for i in range(self.Nl+1) ] ,dtype=object) # partial sum of gradients, in here i accumulate sum of gradients computed on each pattern
     N = np.size(train_x,axis=0) # number of patterns in training set
 
-    # calculate gradient summing over partial gradients
+    # compute gradient summing over partial gradients
     comp_grad = self.compute_gradient
-    p = sum( map( comp_grad, zip(train_x,train_y ) ) )/N
+    p = sum( map( comp_grad, zip( train_x,train_y ) ) )/N
 
     #compute deltas
     deltas = eta * p + a * old_deltas - l * self.w
 
-    # uptdate weights and old_deltas values
+    # update weights and old_deltas values
     self.w += deltas
     old_deltas = deltas
   
@@ -253,7 +256,7 @@ class MLP():
       if i % measure_interval == 0:
         idx_m = int(i/measure_interval) # number of mesurements done 
 
-        # mesure error on validation set if validatin set is provided
+        # mesure error on validation set if validation set is provided
         if val_x is not None:
           outs_v = self.supply_sequence( val_x ) # actual outputs of the network on validation set
           if outs_v.shape != val_y.shape:
