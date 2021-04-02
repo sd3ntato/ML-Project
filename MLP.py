@@ -4,8 +4,7 @@
 # general imports
 import numpy as np
 import pandas as pd
-from sklearn.utils import shuffle
-#from IPython.display import clear_output
+from IPython.display import clear_output
 
 # activation functions
 from numpy import tanh
@@ -181,7 +180,7 @@ class MLP():
 
   def compute_gradient(self,p): 
     """
-    compute gradient over pattern p
+    compute gradient of error over pattern p
     """
     Nl = self.Nl
 
@@ -199,7 +198,7 @@ class MLP():
 
     return np.array(grad)
 
-  def epoch_batch_BP(self, train_x:np.ndarray, train_y:np.ndarray, eta, a=1e-12,l=1e-12):
+  def epoch_batch_BP(self, old_deltas, train_x:np.ndarray, train_y:np.ndarray, eta, a=1e-12,l=1e-12):
     """
     Use all patterns in the given training set to execute an epoch of batch training with (possibly thickonov regularization)
     train_x : input in training set
@@ -208,11 +207,6 @@ class MLP():
     a: momentum rate
     l: thickonov regularization rate
     """
-
-  ###   QUESTA NON VA BENE. non serve preallocare p, old_deltas sempre zero
-
-    old_deltas = np.array( [ np.zeros(self.w[i].shape) for i in range(self.Nl+1) ] ,dtype=object) # prevous delta for momentum computation
-    p = np.array( [ np.zeros(self.w[i].shape) for i in range(self.Nl+1) ] ,dtype=object) # partial sum of gradients, in here i accumulate sum of gradients computed on each pattern
     N = np.size(train_x,axis=0) # number of patterns in training set
 
     # compute gradient summing over partial gradients
@@ -224,7 +218,9 @@ class MLP():
 
     # update weights and old_deltas values
     self.w += deltas
-    old_deltas = deltas
+    
+    # current change returned to be saved and then passed again to this function as old_deltas
+    return deltas
   
   def train(self, train_x, train_y, eta, a=1e-12, l=1e-12, val_x=None, val_y=None, max_epochs=300, tresh=.01, mode='batch', shuffle_data=True, measure_interval=10, verbose=True):
     """
@@ -241,6 +237,9 @@ class MLP():
     if mode=='batch':
       epoch_f = self.epoch_batch_BP
     
+    # previous weights deltas tesnsor for momentum training
+    old_deltas = np.array( [ np.zeros(self.w[i].shape) for i in range(self.Nl+1) ] ,dtype=object) # prevous delta for momentum computation
+
     # execute epochs of training until training is complete or max_epochs epochs are executed (or training error diverges)
     for i in range(max_epochs):
 
@@ -249,7 +248,7 @@ class MLP():
         train_x, train_y = shuffle(train_x, train_y)
       
       # execute an epoch of training
-      epoch_f( train_x, train_y, eta, a=a, l=l ) # epoca di allenamento
+      old_deltas = epoch_f( old_deltas, train_x, train_y, eta, a=a, l=l ) # epoca di allenamento
       
       # after each measure_interval epochs of training do calculation:
       # decide if training is done and mesure training and validation error
@@ -270,12 +269,16 @@ class MLP():
           outs_t = outs_t.reshape(train_y.shape) # reshape when neede or error calculation doesn't work
         assert outs_t.shape == train_y.shape
         e[idx_m] = self.error(outs_t,train_y) # error on training set
-        if verbose: print(f'training error atm: {e[idx_m]}') 
+        if verbose: 
+          print(f'training error atm: {e[idx_m]}') 
+          clear_output(wait=True)
+
         
         # if training is complete exit the loop. training is complete when training error falls below treshold tresh or 
         # error on training set is getting worse due to bad training parameters
         if i>0 and ( e[idx_m] < tresh or e[idx_m] > e[idx_m-1]):  # we quit training when error on training set falls below treshold
-          if verbose: print(f'final error: {e[idx_m]}')
+          if verbose: 
+            print(f'final error: {e[idx_m]}')
           break
         # clear_output(wait=True)
 
@@ -310,9 +313,9 @@ class MLP():
     sup = self.supply
     return np.array(list( map( lambda u : sup(u) , U ) ))
   
-  def test(self, X, Y):
+  def test_error(self, X, Y):
     outs = self.supply_sequence(X)
-    return self.error(outs, Y)
+    return self.error(outs, Y.reshape(outs.shape))
   
   """
   alla fine questa non e' che serva davvero.....

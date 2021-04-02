@@ -104,10 +104,10 @@ def k_fold_CV(data, params, k=4, n_init=10, max_epochs=300, tresh=.1, measure_in
 
                 # reset weights to initial values
                 n.w = init_w 
-                n.train( tr_x, tr_y,  c['learning_rate'], a= c['alpha'], l=c['lambda'], max_epochs=max_epochs, tresh=tresh, mode="batch", shuffle_data=False, measure_interval=measure_interval ) # train the network 
+                n.train( tr_x, tr_y,  c['learning_rate'], a= c['alpha'], l=c['lambda'], max_epochs=max_epochs, tresh=tresh, mode="batch", shuffle_data=False, measure_interval=measure_interval, verbose=False ) # train the network 
 
                 # compute validation error and save it
-                val_error[i] = n.test(val_x, val_y) # test network on this fold and save the resulting error
+                val_error[i] = n.test_error(val_x, val_y) # test network on this fold and save the resulting error
             
             # compute mean validation error on the k folds, save the one given by the best initialization
             val_error = np.mean(val_error) 

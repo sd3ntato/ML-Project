@@ -1,0 +1,2 @@
+PENSIERI DUBBI PERPLESSITÁ:
+- ma io il MSE lo devo calcolare singlolarmente su ogni pattern oppure devo fallo gira sulla sequenza? io credo che dovrei fa la somma sui pattern perche'se l'output é mutidimensionale la sequenza degli output diventa un tensore!
