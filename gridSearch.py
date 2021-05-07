@@ -5,7 +5,7 @@ from itertools import product
 from MLP import MLP, cross_entropy, to_categorical
 from scipy.special import softmax
 from IPython.display import clear_output
-
+from sklearn.utils import shuffle
 
 """
 Nh_monk=[10,25,50]
@@ -57,7 +57,10 @@ def k_fold_CV(data, params, k=4, n_init=10, max_epochs=300, tresh=.1, measure_in
     computes validation error on one of the folds after training on remaining data by n_init initializations.
     Best configutation is the one that gave best average validation error.
     """
-    #split data into 4 folds
+
+    # important to do this if data is ordered (case of poly regression in test)
+    data = shuffle(data)
+    #split data into k folds
     folds = np.array_split(data, k)  
 
     # given the params grid, get all the possible configurations
@@ -71,7 +74,7 @@ def k_fold_CV(data, params, k=4, n_init=10, max_epochs=300, tresh=.1, measure_in
     # initializations on all of the folds.
     print(f'testing {len(configurations)} configurations') # debugging
     for idx_c,c in enumerate(configurations):
-        best_error_init = np.inf  # best error given by some initialization of an MLP with this configuration
+        best_error_conf = np.inf  # best error given by some initialization of an MLP with this configuration
         print(f'testing configuration {c}, {idx_c}/{len(configurations)}') # debugging
 
         # test the configuration n_init times on every fold
@@ -85,15 +88,8 @@ def k_fold_CV(data, params, k=4, n_init=10, max_epochs=300, tresh=.1, measure_in
             init_w = np.copy( n.w ) # salvo una copia dei pesi iniziali
 
             # for each fold, train the network and save the validation error on k-th fold
-            # could be turned to multithread but network is same for each fold and that is a problem. maybe a trhread for each init would be better, but then need to consider concurrency... otherwise make k copies of the network.
-            # p=mp.Pool(4)
-            # p.map(do_print,range(0,10)) 
-            # p.close()
-            # p.join()
-
             val_error = [None]*k # we save validation error for each fold
             for i in range(k):
-                print(f'fold {i}') # debugging
                 
                 # get data form i-th fold
                 train_set, val_set = get_fold(folds,i) 
@@ -101,6 +97,7 @@ def k_fold_CV(data, params, k=4, n_init=10, max_epochs=300, tresh=.1, measure_in
                 # split patterns into input and target output
                 tr_x, tr_y = xy(train_set)
                 val_x, val_y = xy(val_set)
+                print(f' {tr_x.shape}, {tr_y.shape}, {val_x.shape}, {val_y.shape} ')
 
                 # reset weights to initial values
                 n.w = init_w 
@@ -108,19 +105,23 @@ def k_fold_CV(data, params, k=4, n_init=10, max_epochs=300, tresh=.1, measure_in
 
                 # compute validation error and save it
                 val_error[i] = n.test_error(val_x, val_y) # test network on this fold and save the resulting error
+
+                print(f'fold {i} done, error {val_error[i]}') # debugging
             
             # compute mean validation error on the k folds, save the one given by the best initialization
             val_error = np.mean(val_error) 
-            if val_error < best_error_init:
-                best_error_init = val_error
-        
-        # best_error_init errore minimo che ho trovato con questa configurazione
+            if val_error < best_error_conf:
+                best_error_conf = val_error
+                    
+        # best_error_conf errore minimo che ho trovato con questa configurazione
         # after computing error of best initialization with this configuration, compare it with other configurations and save better one
-        if best_error_init < best_error:
-            best_error = best_error_init
+        if best_error_conf < best_error:
+            best_error = best_error_conf
             best_conf = c
+        
+        print(f'best config {c}: {best_error}')
 
-        clear_output(wait=True) # debugging
+        # clear_output(wait=True) # debugging
 
     return best_conf, best_error
         

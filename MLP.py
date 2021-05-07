@@ -4,6 +4,7 @@
 # general imports
 import numpy as np
 import pandas as pd
+from sklearn.utils import shuffle
 from IPython.display import clear_output
 
 # activation functions
@@ -196,7 +197,7 @@ class MLP():
     #compute gradient for each layer. To siumlate bias activation, i add to activations a 1 at the bottom
     grad = [ np.dot( d[m+1] , np.vstack( ( a[m], 1 ) ).T ) for m in range(Nl+1) ]
 
-    return np.array(grad)
+    return np.array(grad, dtype=object)
 
   def epoch_batch_BP(self, old_deltas, train_x:np.ndarray, train_y:np.ndarray, eta, a=1e-12,l=1e-12):
     """
