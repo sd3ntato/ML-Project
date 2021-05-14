@@ -277,7 +277,7 @@ class MLP():
         
         # if training is complete exit the loop. training is complete when training error falls below treshold tresh or 
         # error on training set is getting worse due to bad training parameters
-        if i>0 and ( e[idx_m] < tresh or e[idx_m] > e[idx_m-1]):  # we quit training when error on training set falls below treshold
+        if idx_m>0 and ( np.abs(e[idx_m] - e[idx_m-1])  < tresh or e[idx_m] > e[idx_m-1]):  # we quit training when error on training set falls below treshold
           if verbose: 
             print(f'final error: {e[idx_m]}')
           break
