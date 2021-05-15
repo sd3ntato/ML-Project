@@ -79,7 +79,7 @@ def conv_str_func(f):
 
 class MLP():
 
-  def __init__(self, Nh=[10], Nu=1, Ny=1, f='tanh', f_out='ide' , w_range=.7, w_scale=2, loss='squared_error', error='MSE'):
+  def __init__(self, Nh=[10], Nu=1, Ny=1, f='tanh', f_out='ide' , w_range=.7, loss='squared_error', error='MSE'):
     """
     Nh: number of hidden units for each layer
     Nu: number of input units
@@ -122,6 +122,9 @@ class MLP():
     for i in range(1, Nl):
       self.w[i] = ( 2*np.random.rand( Nh[i], Nh[i-1] + 1 )-1 )*w_range# pesi layer-to-layer, ultima colonna e' bias
     self.w[Nl] = ( 2*np.random.rand( Ny, Nh[Nl-1] + 1) -1 )*w_range# pesi ultimo-layer-to-output, ultima colonna e' bias
+    
+    # previous weights deltas tensor for momentum training
+    self.deltas = np.array( [ np.zeros(self.w[i].shape) for i in range(self.Nl+1) ] ,dtype=object) # prevous delta for momentum computation
 
   def forward_pass(self, u:np.ndarray ): 
     """
@@ -184,7 +187,7 @@ class MLP():
 
     return np.array(grad, dtype=object)
 
-  def epoch_batch_BP(self, old_deltas, train_x:np.ndarray, train_y:np.ndarray, eta, a=1e-12,l=1e-12):
+  def epoch(self, train_x:np.ndarray, train_y:np.ndarray, eta, a=1e-12,l=1e-12,bs=None):
     """
     Use all patterns in the given training set to execute an epoch of batch training with (possibly thickonov regularization)
     train_x : input in training set
@@ -192,43 +195,24 @@ class MLP():
     eta: learning rate
     a: momentum rate
     l: thickonov regularization rate
+    bs: batch size
     """
-    N = np.size(train_x,axis=0) # number of patterns in training set
-
-    # compute gradient summing over partial gradients
-    comp_grad = self.compute_gradient
-    p = sum( map( comp_grad, zip( train_x,train_y ) ) )/N #why divide by N?
-
-    #compute deltas
-    deltas = eta * p + a * old_deltas - l * self.w
-
-    # update weights and old_deltas values
-    self.w += deltas
-    
-    # current change returned to be saved and then passed again to this function as old_deltas
-    return deltas
-
-  def epoch_minibatch(self, old_deltas, train_x:np.ndarray, train_y:np.ndarray, eta, a=1e-12,l=1e-12, bs=30):
-    """
-    Use all patterns in the given training set to execute an epoch of batch training with (possibly thickonov regularization)
-    train_x : input in training set
-    train_y : output in training set
-    eta: learning rate
-    a: momentum rate
-    l: thickonov regularization rate
-    bs: Batch size
-    """
-    #Sample bs elements from the dataset
-    batch_x,batch_y=np.random.choise(train_x,bs), np.random.choise(train_y,bs)
-
-    #Calculate the size of the dataset (maybe it's more efficent to do so only once inside the function train)
     N = np.size(train_x,axis=0)
+    if bs==None: bs = N # number of patterns in training set
+    for _ in range(int(N/bs)):
+      if bs!=N:
+        train_x, train_y=np.random.choice(train_x,bs), np.random.choice(train_y,bs)
+      # compute gradient summing over partial gradients
+      comp_grad = self.compute_gradient
 
-    #repeat this until a number of samples is (approxiamtely) as big as the dataset is passed to the NN
-    for _ in range(np.round(N/bs)):
-      old_deltas=self.epoch_batch_BP(old_deltas,batch_x,batch_y,eta,a,l)
-    
-    return old_deltas
+      p = sum( map( comp_grad, zip( train_x,train_y ) ) )/bs #why divide by N?
+
+      #compute deltas
+      self.deltas = eta * p + a * self.deltas - l * self.w
+
+      # update weights
+      self.w += self.deltas
+
 
 
   def train(self, train_x, train_y, eta, a=1e-12, l=1e-12, bs=30, val_x=None, val_y=None, max_epochs=300, tresh=.01, mode='batch', shuffle_data=True, measure_interval=10, verbose=True):
@@ -239,16 +223,6 @@ class MLP():
     Could use some early stopping mechanism through validation error.
     """
     
-    # set function that does training epoch
-    epoch_f=None 
-    if mode=='batch':
-      epoch_f = self.epoch_batch_BP
-    if mode=='minibatch':
-      epoch_f= self.epoch_minibatch
-    
-    # previous weights deltas tensor for momentum training
-    old_deltas = np.array( [ np.zeros(self.w[i].shape) for i in range(self.Nl+1) ] ,dtype=object) # prevous delta for momentum computation
-
     # execute epochs of training until training is complete or max_epochs epochs are executed (or training error diverges)
     for i in range(max_epochs):
 
@@ -258,7 +232,7 @@ class MLP():
         train_x, train_y = shuffle(train_x, train_y)
       
       # execute an epoch of training
-      old_deltas = epoch_f( old_deltas, train_x, train_y, eta, a=a, l=l ) # epoca di allenamento
+      self.epoch(train_x, train_y, eta, a=a, l=l ,bs=bs) # epoca di allenamento
       
       # after each measure_interval epochs of training do calculation:
       # decide if training is done and mesure training and validation error
@@ -289,7 +263,8 @@ class MLP():
         
         # if training is complete exit the loop. training is complete when training error falls below treshold tresh or 
         # error on training set is getting worse due to bad training parameters
-        if idx_m>0 and ( np.abs(e - self.train_history[-2])  < tresh or e > self.train_history[-2]):  # we quit training when error on training set falls below treshold
+        #i have put five to avoid errors and btw no net converges in less than 5 epochs
+        if idx_m>5 and ( np.abs(e - self.train_history[-2])  < tresh or e > self.train_history[-2]):  # we quit training when error on training set falls below treshold
           if verbose: 
             print(f'final error: {e}')
           break
