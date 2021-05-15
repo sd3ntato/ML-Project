@@ -41,6 +41,9 @@ def to_categorical(y, num_classes=None, dtype='float32'): # code from keras impl
   categorical = np.reshape(categorical, output_shape)
   return categorical
 
+def smax_to_categorical(y):
+  return to_categorical(np.argmax(y),len(y))
+
 # loss functions:
 squared_error = lambda y,d:  np.linalg.norm(y - d) ** 2 # categorical cross-entropy
 cross_entropy = lambda y,d: -np.sum( d * np.log( y + np.finfo(float).eps ) )
@@ -270,23 +273,25 @@ class MLP():
           break
         # clear_output(wait=True)
 
-  def supply(self, u):
+  def supply(self, u, categorical=False):
     """
     Supply an input to this network. The network computes its internal state and otuput of the network is activation of the last layer's units.
     u: input pattern
     returns output of the network given the supplied pattern
     """
-    a = [None]*(self.Nl+2) # attivazioni a[m] = f[m](v[m])
-
     # reshape input if needed
     if not u.shape == (self.Nu,1):
       u = u.reshape((self.Nu,1))
     
+    # calculate activation of units in the first layer
+    a=np.dot( self.w[0] , np.vstack((u,1)) )
     # calculate activation of units in each layer
-    a[0] = u
-    for m in range(self.Nl+1):
-      a[m+1] = self.f[m+1]( np.dot( self.w[m] , np.vstack((a[m],1)) ) )
-    return np.copy(a[self.Nl+1])
+    for m in range(1,self.Nl+1):
+      a = self.f[m+1]( np.dot( self.w[m] , np.vstack((a,1)) ) )
+
+    #return the output  
+    if categorical==True: return smax_to_categorical(a)
+    return np.copy(a)
 
   def supply_sequence(self,U):
     """
@@ -302,6 +307,13 @@ class MLP():
   def test_error(self, X, Y):
     outs = self.supply_sequence(X)
     return self.error(outs, Y.reshape(outs.shape))
+
+  def accuracy(self, X, Y): #only valid for classification algorithms
+    correct=0
+    total=len(X)
+    for x,y in zip (X,Y):
+      if self.supply(x,True)==y: correct+=1
+    return correct/total
   
   """
   alla fine questa non e' che serva davvero.....
