@@ -57,45 +57,25 @@ def derivative(f):
   elif f == relu:
     return lambda x: 1*(x>=0)
   elif f == ide or f == softmax:
-    return lambda x : x-x+1
-  elif f == squared_error or f == cross_entropy:
+    return lambda x : x-x+1 
+  elif f == squared_error or f == cross_entropy: 
     return lambda d,y: d-y
 
-def get_f(f):
-  """
-  activation function: string->function
-  """ 
-  if f=='relu':
-    return relu
-  elif f=='tanh':
-    return tanh
 
-def get_f_out(f):
+def conv_str_func(f):
   """
-  activation function of output units: string->function
-  """ 
-  if f=='ide':
-    return ide
-  elif f=='softmax':
-    return softmax
+  if given a string of a function it gives you the actual function.
+  if given the function it gives the string
+  es: conv_str_func('relu')==relu()
+  es: conv_str_func(relu)=='relu'
+  """
+  functions=[ relu , tanh , ide , softmax , squared_error , cross_entropy , MSE]
+  strings = ['relu','tanh','ide','softmax','squared_error','cross_entropy','MSE']
+  for i in range(len(functions)):
+    if f==functions[i]: return strings[i]
+    if f==strings[i]: return functions[i]
+  raise Exception('Input not valid')
 
-def get_loss(f):
-  """
-  loss function: string->function
-  """ 
-  if f=='squared_error':
-    return squared_error
-  elif f=='cross_entropy':
-    return cross_entropy
-
-def get_error(f):
-  """
-  error function: string->function
-  """ 
-  if f=='MSE':
-    return MSE
-  elif f=='cross_entropy':
-    return cross_entropy
 
 class MLP():
 
@@ -115,16 +95,16 @@ class MLP():
     if loss == 'cross_entropy':
       assert f_out == 'softmax', 'if using cross-entropy loss, must use softmax as output activation function'
 
-    f = get_f(f)
-    f_out = get_f_out(f_out)
-    loss = get_loss(loss)
-    error = get_error(error)
+    f = conv_str_func(f)
+    f_out = conv_str_func(f_out)
+    loss = conv_str_func(loss)
+    error = conv_str_func(error)
 
     Nl = len(Nh)
-    self.Nl = Nl # numero layer
-    self.Nu = Nu # unita' input
-    self.Ny = Ny # unita' output
-    self.Nh = Nh # unita' interne
+    self.Nl = Nl # Number of layers
+    self.Nu = Nu # Input unit
+    self.Ny = Ny # Output unit
+    self.Nh = Nh # Internal Unit
 
     self.f = [ ide ] + ( [f] * Nl ) + [ f_out ] #[f_in, f,f,f,f ,f_out] f[m](a[m])
     self.df = [ derivative(f) for f in self.f] # df[m](v[m])
@@ -134,11 +114,14 @@ class MLP():
     self.dl = derivative(loss) # (y-d)
     self.error = error
 
+    self.train_history=[]
+    self.valid_history=[]
+
     # a[m+1] = f[m]( w[m]*a[m] ) a[m] = (Nh,1) a[m+1] = (Nh,1) w[m] = (Nh,Nh)
-    self.w[0] = np.round( ( 2*np.random.rand( Nh[0], Nu+1 ) -1 )*w_range, w_scale )# pesi input-to-primo-layer, ultima colonna e' bias. w[i,j] in [-1,1]
+    self.w[0] = ( 2*np.random.rand( Nh[0], Nu+1 ) -1 )*w_range# pesi input-to-primo-layer, ultima colonna e' bias. w[i,j] in [-1,1]
     for i in range(1, Nl):
-      self.w[i] = np.round( ( 2*np.random.rand( Nh[i], Nh[i-1] + 1 )-1 )*w_range, w_scale )# pesi layer-to-layer, ultima colonna e' bias
-    self.w[Nl] = np.round( ( 2*np.random.rand( Ny, Nh[Nl-1] + 1) -1 )*w_range, w_scale )# pesi ultimo-layer-to-output, ultima colonna e' bias
+      self.w[i] = ( 2*np.random.rand( Nh[i], Nh[i-1] + 1 )-1 )*w_range# pesi layer-to-layer, ultima colonna e' bias
+    self.w[Nl] = ( 2*np.random.rand( Ny, Nh[Nl-1] + 1) -1 )*w_range# pesi ultimo-layer-to-output, ultima colonna e' bias
 
   def forward_pass(self, u:np.ndarray ): 
     """
@@ -163,6 +146,8 @@ class MLP():
   def backward_pass(self, y, a, v): 
     """
     given activations and potentials compute error-propagation-coefficents
+    v: activation potentials
+    a: activation
     """
     Nl=self.Nl
 
@@ -212,7 +197,7 @@ class MLP():
 
     # compute gradient summing over partial gradients
     comp_grad = self.compute_gradient
-    p = sum( map( comp_grad, zip( train_x,train_y ) ) )/N
+    p = sum( map( comp_grad, zip( train_x,train_y ) ) )/N #why divide by N?
 
     #compute deltas
     deltas = eta * p + a * old_deltas - l * self.w
@@ -222,29 +207,53 @@ class MLP():
     
     # current change returned to be saved and then passed again to this function as old_deltas
     return deltas
-  
-  def train(self, train_x, train_y, eta, a=1e-12, l=1e-12, val_x=None, val_y=None, max_epochs=300, tresh=.01, mode='batch', shuffle_data=True, measure_interval=10, verbose=True):
+
+  def epoch_minibatch(self, old_deltas, train_x:np.ndarray, train_y:np.ndarray, eta, a=1e-12,l=1e-12, bs=30):
+    """
+    Use all patterns in the given training set to execute an epoch of batch training with (possibly thickonov regularization)
+    train_x : input in training set
+    train_y : output in training set
+    eta: learning rate
+    a: momentum rate
+    l: thickonov regularization rate
+    bs: Batch size
+    """
+    #Sample bs elements from the dataset
+    batch_x,batch_y=np.random.choise(train_x,bs), np.random.choise(train_y,bs)
+
+    #Calculate the size of the dataset (maybe it's more efficent to do so only once inside the function train)
+    N = np.size(train_x,axis=0)
+
+    #repeat this until a number of samples is (approxiamtely) as big as the dataset is passed to the NN
+    for _ in range(np.round(N/bs)):
+      old_deltas=self.epoch_batch_BP(old_deltas,batch_x,batch_y,eta,a,l)
+    
+    return old_deltas
+
+
+  def train(self, train_x, train_y, eta, a=1e-12, l=1e-12, bs=30, val_x=None, val_y=None, max_epochs=300, tresh=.01, mode='batch', shuffle_data=True, measure_interval=10, verbose=True):
     """
     Executes a maximum of max_epochs epochs of training using the function epoch_f in order to do regression of some function that maps input train_x->train_y.
     After each measure_interval epochs, mesures error on training set, and exits when training error falls below given treshold.
     Returns error at each mesurement calculated both on training and validation set, so you can plot them.
     Could use some early stopping mechanism through validation error.
     """
-    e = [None]*max_epochs  # array of training errors for each epoch
-    v = [None]*max_epochs # array of validation errors for each epoch
     
     # set function that does training epoch
     epoch_f=None 
     if mode=='batch':
       epoch_f = self.epoch_batch_BP
+    if mode=='minibatch':
+      epoch_f= self.epoch_minibatch
     
-    # previous weights deltas tesnsor for momentum training
+    # previous weights deltas tensor for momentum training
     old_deltas = np.array( [ np.zeros(self.w[i].shape) for i in range(self.Nl+1) ] ,dtype=object) # prevous delta for momentum computation
 
     # execute epochs of training until training is complete or max_epochs epochs are executed (or training error diverges)
     for i in range(max_epochs):
 
       # shuffle training set if needed
+      """i would do this before the training"""
       if shuffle_data==True:
         train_x, train_y = shuffle(train_x, train_y)
       
@@ -262,28 +271,29 @@ class MLP():
           if outs_v.shape != val_y.shape:
             outs_v = outs_v.reshape(val_y.shape) # reshape when needed or error calculation doesn't work
           assert outs_v.shape == val_y.shape
-          v[idx_m] = self.error(outs_v,val_y) # Mean Squared Error on training set
+          v = self.error(outs_v,val_y) # Mean Squared Error on training set
+          self.valid_history.append(v)
 
         # measure error on training set to decide if training is complete
         outs_t = self.supply_sequence( train_x ) # actual outputs of the network on training set
         if outs_t.shape != train_y.shape:
           outs_t = outs_t.reshape(train_y.shape) # reshape when neede or error calculation doesn't work
         assert outs_t.shape == train_y.shape
-        e[idx_m] = self.error(outs_t,train_y) # error on training set
+        e = self.error(outs_t,train_y) # error on training set
+        self.train_history.append(e)
+
         if verbose: 
-          print(f'training error atm: {e[idx_m]}') 
+          print(f'training error atm: {e}') 
           clear_output(wait=True)
 
         
         # if training is complete exit the loop. training is complete when training error falls below treshold tresh or 
         # error on training set is getting worse due to bad training parameters
-        if idx_m>0 and ( np.abs(e[idx_m] - e[idx_m-1])  < tresh or e[idx_m] > e[idx_m-1]):  # we quit training when error on training set falls below treshold
+        if idx_m>0 and ( np.abs(e - self.train_history[-2])  < tresh or e > self.train_history[-2]):  # we quit training when error on training set falls below treshold
           if verbose: 
-            print(f'final error: {e[idx_m]}')
+            print(f'final error: {e}')
           break
         # clear_output(wait=True)
-
-    return e, v
 
   def supply(self, u):
     """
