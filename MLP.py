@@ -42,7 +42,7 @@ def to_categorical(y, num_classes=None, dtype='float32'): # code from keras impl
   return categorical
 
 def smax_to_categorical(y):
-  return to_categorical(np.argmax(y),len(y))
+  return to_categorical(np.argmax(y),len(y),dtype='int32').reshape(-1,1,1) #non torna int 
 
 # loss functions:
 squared_error = lambda y,d:  np.linalg.norm(y - d) ** 2 # categorical cross-entropy
@@ -201,7 +201,7 @@ class MLP():
     bs: batch size
     """
     N = np.size(train_x,axis=0)
-    if bs==None: bs = N # number of patterns in training set
+    if bs is None: bs = N # number of patterns in training set
     for _ in range(int(N/bs)):
       if bs!=N:
         train_x, train_y=np.random.choice(train_x,bs), np.random.choice(train_y,bs)
