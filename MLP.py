@@ -82,7 +82,7 @@ def conv_str_func(f):
 
 class MLP():
 
-  def __init__(self, Nh=[10], Nu=1, Ny=1, f='tanh', f_out='ide' , w_range=.7, loss='squared_error', error='MSE'):
+  def __init__(self, Nh=[10], Nu=1, Ny=1, f='tanh', f_out='ide' , w_range=.7):
     """
     Nh: number of hidden units for each layer
     Nu: number of input units
@@ -95,13 +95,17 @@ class MLP():
     error: error function
     """ 
       
-    if loss == 'cross_entropy':
-      assert f_out == 'softmax', 'if using cross-entropy loss, must use softmax as output activation function'
+    if f_out=='ide':
+      loss=squared_error
+      error=MSE
+    elif f_out=='softmax':
+      loss=cross_entropy
+      error=self.accuracy
+    else:
+      raise Exception('f_out not supported')
 
     f = conv_str_func(f)
     f_out = conv_str_func(f_out)
-    loss = conv_str_func(loss)
-    error = conv_str_func(error)
 
     Nl = len(Nh)
     self.Nl = Nl # Number of layers
@@ -203,15 +207,13 @@ class MLP():
     N = np.size(train_x,axis=0)
     if bs is None: bs = N # number of patterns in training set
     for _ in range(int(N/bs)):
+      # compute gradient summing over partial gradients
       if bs!=N:
         i = np.random.randint(0,N,size=bs)
+        p = sum( map( self.compute_gradient, zip( train_x[i],train_y[i] ) ) )/bs
       else:
-        i=list(range(N))
-      # compute gradient summing over partial gradients
-      comp_grad = self.compute_gradient
-
-      p = sum( map( comp_grad, zip( train_x[i],train_y[i] ) ) )/bs #why divide by N?
-
+        p = sum( map( self.compute_gradient, zip( train_x,train_y ) ) )/bs
+  
       #compute deltas
       self.deltas = eta * p + a * self.deltas - l * self.w
 
@@ -246,7 +248,7 @@ class MLP():
 
         # mesure error on validation set if validation set is provided
         if val_x is not None:
-          outs_v = self.supply_sequence( val_x ) # actual outputs of the network on validation set
+          outs_v = self.__call__( val_x ) # actual outputs of the network on validation set
           if outs_v.shape != val_y.shape:
             outs_v = outs_v.reshape(val_y.shape) # reshape when needed or error calculation doesn't work
           assert outs_v.shape == val_y.shape
@@ -254,7 +256,7 @@ class MLP():
           self.valid_history.append(v)
 
         # measure error on training set to decide if training is complete
-        outs_t = self.supply_sequence( train_x ) # actual outputs of the network on training set
+        outs_t = self.__call__( train_x ) # actual outputs of the network on training set
         if outs_t.shape != train_y.shape:
           outs_t = outs_t.reshape(train_y.shape) # reshape when neede or error calculation doesn't work
         assert outs_t.shape == train_y.shape
@@ -275,7 +277,6 @@ class MLP():
           if verbose: 
             print(f'final error: {e}')
           break
-        # clear_output(wait=True)
 
   def supply(self, u, categorical=False):
     """
@@ -286,18 +287,16 @@ class MLP():
     # reshape input if needed
     if not u.shape == (self.Nu,1):
       u = u.reshape((self.Nu,1))
-    
-    # calculate activation of units in the first layer
-    a= self.f[1]( np.dot( self.w[0] , np.vstack((u,1)) ) )
+
     # calculate activation of units in each layer
-    for m in range(1,self.Nl+1):
-      a = self.f[m+1]( np.dot( self.w[m] , np.vstack((a,1)) ) )
+    for m in range(self.Nl+1):
+      u = self.f[m+1]( np.dot( self.w[m] , np.vstack((u,1)) ) )
 
     #return the output  
-    if categorical==True: return smax_to_categorical(a)
-    return np.copy(a)
+    if categorical==True: return smax_to_categorical(u)
+    return np.copy(u)
 
-  def supply_sequence(self,U):
+  def __call__(self,U):
     """
     given sequence of input patterns, computes sequence of relative network's outputs.
     complied version of 
@@ -305,11 +304,10 @@ class MLP():
     U: sequence of input patterns.
     """
     # calculate sequence of outputs of the network when provided when given sequence of inputs
-    sup = self.supply
-    return np.array(list( map( lambda u : sup(u) , U ) ))
+    return np.array(list( map( self.supply, U ) ))
   
   def test_error(self, X, Y):
-    outs = self.supply_sequence(X)
+    outs = self.__call__(X)
     return self.error(outs, Y.reshape(outs.shape))
 
   def accuracy(self, X, Y): #only valid for classification algorithms
@@ -319,71 +317,3 @@ class MLP():
       if self.supply(x,True)==y: correct+=1
     return correct/total
   
-  """
-  alla fine questa non e' che serva davvero.....
-  def classify(self,u):
-    classify sample. To be written properly
-    u: imput pattern
-    if self.f_out == softmax:
-      return -1 if float( self.supply(u) )<0 else 1
-  """
-
-"""
-  questa andrebbe riscritta bellina come quella batch
-  def epoch_online_BP(self, train_x:np.ndarray, train_y:np.ndarray, eta):
-    ""
-    Use all patterns in the given training set to execute an epoch of online training
-    train_x : input in training set
-    train_y : output in training set
-    eta: learning rate
-    ""
-    for i in range(np.size(train_x,axis=0)):
-      
-      self.compute_gradient() 
-
-      for m in range(self.Nl+1):
-        self.w[m] += eta * self.grad[m] 
-"""
-
-"""
-def score(o,d): 
-  percentage score of nework in binary classification task. To be written properly
-  o: sequence of ouputs of the network, 
-  d: sequence of desired outputs
-  return ( o - d == 0).sum()/len(o)*100
-"""
-
-"""
-from itertools import product  
-def combinations(Nh,Nls):
-    x=[]
-    for Nl in Nls :
-        x.append(list(permutations(Nh_monk,Nls_monk)))
-    
-    combinedList=[*x[0],*x[1],*x[2]]
-    return combinedList
-
-Nh = [2, 3, 4]
-Nls = [2, 3]
-
-grid = {
-  'units' : combinations(Nh,Nls),
-  'lr' : [1e-01, 1e-02, 1e-03],  # learning rate
-  'a' : [1e-01, 1e-02, 1e-03, 0],  # momento
-  'l' : [1e-01, 1e-02, 1e-03, 1e-10, 1e-12, 0],  # regolarizzazione
-  'f' : ['relu','tanh'], # funzione attivazione
-  'w_init' : [0.7, 1e-02], # scalining iniziale pesi
-}
-
-def k_fold_CV(train_x, train_y, k, n_init, grid):
-  # splittare il training set in k fold
-  splits = split( train_x, train_y)  
-
-  # per ogni configurazione in grid:
-      # per ogni split in splits:
-        # inizializza n_init reti con configurazione
-        # allena
-        # testa
-        # salva la migliore configurazione
-
-"""
