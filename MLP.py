@@ -204,11 +204,13 @@ class MLP():
     if bs is None: bs = N # number of patterns in training set
     for _ in range(int(N/bs)):
       if bs!=N:
-        train_x, train_y=np.random.choice(train_x,bs), np.random.choice(train_y,bs)
+        i = np.random.randint(0,N,size=bs)
+      else:
+        i=list(range(N))
       # compute gradient summing over partial gradients
       comp_grad = self.compute_gradient
 
-      p = sum( map( comp_grad, zip( train_x,train_y ) ) )/bs #why divide by N?
+      p = sum( map( comp_grad, zip( train_x[i],train_y[i] ) ) )/bs #why divide by N?
 
       #compute deltas
       self.deltas = eta * p + a * self.deltas - l * self.w
@@ -286,7 +288,7 @@ class MLP():
       u = u.reshape((self.Nu,1))
     
     # calculate activation of units in the first layer
-    a=np.dot( self.w[0] , np.vstack((u,1)) )
+    a= self.f[1]( np.dot( self.w[0] , np.vstack((u,1)) ) )
     # calculate activation of units in each layer
     for m in range(1,self.Nl+1):
       a = self.f[m+1]( np.dot( self.w[m] , np.vstack((a,1)) ) )
