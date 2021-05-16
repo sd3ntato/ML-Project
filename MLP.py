@@ -270,8 +270,8 @@ class MLP():
           outs_t = outs_t.reshape(train_y.shape) # reshape when neede or error calculation doesn't work
         assert outs_t.shape == train_y.shape
         e[idx_m] = self.error(outs_t,train_y) # error on training set
-        if verbose: 
-          print(f'training error atm: {e[idx_m]}') 
+        if verbose and idx_m>0: 
+          print(f'training error atm: {e[idx_m]}, {np.abs(e[idx_m] - e[idx_m-1])}') 
           clear_output(wait=True)
 
         
