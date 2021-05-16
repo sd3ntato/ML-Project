@@ -256,11 +256,13 @@ class MLP():
         if outs_t.shape != train_y.shape:
           outs_t = outs_t.reshape(train_y.shape) # reshape when neede or error calculation doesn't work
         assert outs_t.shape == train_y.shape
+
         e = self.error(outs_t,train_y) # error on training set
         self.train_history.append(e)
 
         if verbose: 
           print(f'training error atm: {e}') 
+
           clear_output(wait=True)
 
         

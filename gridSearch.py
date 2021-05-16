@@ -72,7 +72,7 @@ def k_fold_CV(data, params, k=4, n_init=10, max_epochs=300, tresh=.1, measure_in
 
     # try all the configurations, for each of them we compute error of n_init MLP 
     # initializations on all of the folds.
-    print(f'testing {len(configurations)} configurations') # debugging
+    print(f'testing {len(configurations)} configurations \n') # debugging
     for idx_c,c in enumerate(configurations):
         best_error_conf = np.inf  # best error given by some initialization of an MLP with this configuration
         print(f'testing configuration {c}, {idx_c}/{len(configurations)}') # debugging
@@ -97,7 +97,7 @@ def k_fold_CV(data, params, k=4, n_init=10, max_epochs=300, tresh=.1, measure_in
                 # split patterns into input and target output
                 tr_x, tr_y = xy(train_set)
                 val_x, val_y = xy(val_set)
-                print(f' {tr_x.shape}, {tr_y.shape}, {val_x.shape}, {val_y.shape} ')
+                #print(f' {tr_x.shape}, {tr_y.shape}, {val_x.shape}, {val_y.shape} ')
 
                 # reset weights to initial values
                 n.w = init_w 
@@ -106,21 +106,22 @@ def k_fold_CV(data, params, k=4, n_init=10, max_epochs=300, tresh=.1, measure_in
                 # compute validation error and save it
                 val_error[i] = n.test_error(val_x, val_y) # test network on this fold and save the resulting error
 
-                print(f'fold {i} done, error {val_error[i]}') # debugging
+                #print(f'fold {i} done, error {val_error[i]}') # debugging
             
             # compute mean validation error on the k folds, save the one given by the best initialization
             val_error = np.mean(val_error) 
+            print(f'{val_error}')
             if val_error < best_error_conf:
                 best_error_conf = val_error
                     
         # best_error_conf errore minimo che ho trovato con questa configurazione
         # after computing error of best initialization with this configuration, compare it with other configurations and save better one
+        print(f'best mean error for this config: {best_error_conf} \n')
         if best_error_conf < best_error:
             best_error = best_error_conf
             best_conf = c
         
-        print(f'best config {c}: {best_error}')
-
+    print(f'best config {c}: {best_error}')
         # clear_output(wait=True) # debugging
 
     return best_conf, best_error
