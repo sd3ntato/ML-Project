@@ -251,7 +251,8 @@ class MLP():
       self.train_history.append(e)
 
       # mesure loss on training set to get statistics
-      loss = self.l(self.__call__(train_x),train_y)
+      loss = self.l(self.__call__(train_x).reshape(np.shape(train_y)),train_y)
+
       self.loss_history.append(loss)
 
       if verbose: 
