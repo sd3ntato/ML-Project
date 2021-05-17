@@ -47,7 +47,7 @@ def smax_to_categorical(y):
 # loss functions:
 squared_error = lambda y,d:  np.linalg.norm(y - d) ** 2 # categorical cross-entropy
 cross_entropy = lambda y,d: -np.sum( d * np.log( y + np.finfo(float).eps ) )
-MSE = lambda x,y: np.mean( np.square( x-y ) )
+#MSE = lambda x,y: np.mean( np.square( x-y ) )
 
 def derivative(f):
   """
@@ -72,8 +72,8 @@ def conv_str_func(f):
   es: conv_str_func('relu')==relu()
   es: conv_str_func(relu)=='relu'
   """
-  functions=[ relu , tanh , ide , softmax , squared_error , cross_entropy , MSE]
-  strings = ['relu','tanh','ide','softmax','squared_error','cross_entropy','MSE']
+  functions=[ relu , tanh , ide , softmax , squared_error , cross_entropy ]
+  strings = ['relu','tanh','ide','softmax','squared_error','cross_entropy']
   for i in range(len(functions)):
     if f==functions[i]: return strings[i]
     if f==strings[i]: return functions[i]
@@ -97,7 +97,7 @@ class MLP():
       
     if f_out=='ide':
       loss=squared_error
-      error=MSE
+      error=self.MSE
     elif f_out=='softmax':
       loss=cross_entropy
       error=self.accuracy
@@ -123,6 +123,7 @@ class MLP():
 
     self.train_history=[]
     self.valid_history=[]
+    self.loss_history=[]
 
     # a[m+1] = f[m]( w[m]*a[m] ) a[m] = (Nh,1) a[m+1] = (Nh,1) w[m] = (Nh,Nh)
     self.w[0] = ( 2*np.random.rand( Nh[0], Nu+1 ) -1 )*w_range# pesi input-to-primo-layer, ultima colonna e' bias. w[i,j] in [-1,1]
@@ -243,33 +244,28 @@ class MLP():
       
       # after each measure_interval epochs of training do calculation:
       # decide if training is done and mesure training and validation error
+    
+      # mesure error on validation set if validation set is provided
+      if val_x is not None:
+        v = self.error(val_x,val_y) # Mean Squared Error on training set
+        self.valid_history.append(v)
+
+      # measure error on training set to decide if training is complete
+      e = self.error(train_x,train_y) # error on training set
+      self.train_history.append(e)
+
+      # mesure loss on training set to get statistics
+      loss = self.l(self.__call__(train_x),train_y)
+      self.loss_history.append(loss)
+
+      if verbose: 
+        print(f'training error atm: {e}, {loss}') 
+
+        clear_output(wait=True)
+
       if i % measure_interval == 0:
         idx_m = int(i/measure_interval) # number of mesurements done 
-
-        # mesure error on validation set if validation set is provided
-        if val_x is not None:
-          outs_v = self.__call__( val_x ) # actual outputs of the network on validation set
-          if outs_v.shape != val_y.shape:
-            outs_v = outs_v.reshape(val_y.shape) # reshape when needed or error calculation doesn't work
-          assert outs_v.shape == val_y.shape
-          v = self.error(outs_v,val_y) # Mean Squared Error on training set
-          self.valid_history.append(v)
-
-        # measure error on training set to decide if training is complete
-        outs_t = self.__call__( train_x ) # actual outputs of the network on training set
-        if outs_t.shape != train_y.shape:
-          outs_t = outs_t.reshape(train_y.shape) # reshape when neede or error calculation doesn't work
-        assert outs_t.shape == train_y.shape
-
-        e = self.error(outs_t,train_y) # error on training set
-        self.train_history.append(e)
-
-        if verbose: 
-          print(f'training error atm: {e}') 
-
-          clear_output(wait=True)
-
-        
+      
         # if training is complete exit the loop. training is complete when training error falls below treshold tresh or 
         # error on training set is getting worse due to bad training parameters
         #i have put five to avoid errors and btw no net converges in less than 5 epochs
@@ -314,6 +310,14 @@ class MLP():
     correct=0
     total=len(X)
     for x,y in zip (X,Y):
-      if self.supply(x,True)==y: correct+=1
+      # cannot do just self.supply(x,True)==y bc python compares element by element. must use np.equal(x,y) or .all()
+      if np.array_equal(self.supply(x,True).reshape(-1), y.reshape(-1)): correct+=1
     return correct/total
+
+  def MSE(self,X,Y):
+    outs = self.__call__( X ) # actual outputs of the network on training set
+    if outs.shape != Y.shape:
+      outs = outs.reshape(Y.shape) # reshape when neede or error calculation doesn't work
+    assert outs.shape == Y.shape
+    return np.mean( np.square( outs - Y ) )
   
