@@ -82,7 +82,7 @@ def conv_str_func(f):
 
 class MLP():
 
-  def __init__(self, Nh=[10], Nu=1, Ny=1, f='tanh', f_out='ide' , w_range=.7):
+  def __init__(self, Nodes, f='tanh', f_out='ide' , w_range=.7):
     """
     Nh: number of hidden units for each layer
     Nu: number of input units
@@ -107,15 +107,13 @@ class MLP():
     f = conv_str_func(f)
     f_out = conv_str_func(f_out)
 
-    Nl = len(Nh)
-    self.Nl = Nl # Number of layers
-    self.Nu = Nu # Input unit
-    self.Ny = Ny # Output unit
-    self.Nh = Nh # Internal Unit
+    Nl = len(Nodes)
+    self.Nl = Nl # Number of hidden layers
+    self.Nodes=Nodes #the array of the nodes
 
-    self.f = [ ide ] + ( [f] * Nl ) + [ f_out ] #[f_in, f,f,f,f ,f_out] f[m](a[m])
+    self.f = [ ide ] + ( [f] * (Nl-2 )) + [ f_out ] #[f_in, f,f,f,f ,f_out] f[m](a[m])
     self.df = [ derivative(f) for f in self.f] # df[m](v[m])
-    self.w = np.array( [None]*(Nl+1), dtype=object ) # matrici dei pesi 
+    self.w = np.array( [None]*(Nl-1), dtype=object ) # matrici dei pesi 
 
     self.l = loss # funzione loss (y-d)**2
     self.dl = derivative(loss) # (y-d)
@@ -125,30 +123,28 @@ class MLP():
     self.valid_history=[]
 
     # a[m+1] = f[m]( w[m]*a[m] ) a[m] = (Nh,1) a[m+1] = (Nh,1) w[m] = (Nh,Nh)
-    self.w[0] = ( 2*np.random.rand( Nh[0], Nu+1 ) -1 )*w_range# pesi input-to-primo-layer, ultima colonna e' bias. w[i,j] in [-1,1]
-    for i in range(1, Nl):
-      self.w[i] = ( 2*np.random.rand( Nh[i], Nh[i-1] + 1 )-1 )*w_range# pesi layer-to-layer, ultima colonna e' bias
-    self.w[Nl] = ( 2*np.random.rand( Ny, Nh[Nl-1] + 1) -1 )*w_range# pesi ultimo-layer-to-output, ultima colonna e' bias
-    
+    for i in range(0,Nl-1):
+      self.w[i]=( 2*np.random.rand( Nodes[i+1], Nodes[i]+1 ) -1 )*w_range # pesi layer-to-layer, ultima colonna e' bias
+
     # previous weights deltas tensor for momentum training
-    self.deltas = np.array( [ np.zeros(self.w[i].shape) for i in range(self.Nl+1) ] ,dtype=object) # prevous delta for momentum computation
+    self.deltas = np.array( [ np.zeros(self.w[i].shape) for i in range(self.Nl-1) ] ,dtype=object) # prevous delta for momentum computation
 
   def forward_pass(self, u:np.ndarray ): 
     """
     compute activations and activation potentials
     """
     Nl = self.Nl
-    v = [None]*(Nl+2) # potenziali attivazione v[m]
-    a = [None]*(Nl+2) # attivazioni a[m] = f[m](v[m])
+    v = [None]*Nl # potenziali attivazione v[m]
+    a = [None]*Nl # attivazioni a[m] = f[m](v[m])
 
     # reshape input if needed
-    if not u.shape == (self.Nu,1): 
-      u = u.reshape((self.Nu,1))
+    if not u.shape == (self.Nodes[0],1): 
+      u = u.reshape((self.Nodes[0],1))
 
     # compute activation and potentials for units in each layer
     v[0] = u
     a[0] = u # activation of input units is external input
-    for m in range(self.Nl+1): 
+    for m in range(self.Nl-1): 
       v[m+1] =  np.dot( self.w[m] , np.vstack((a[m],1)) ) # activation of bias units is always 1
       a[m+1] = self.f[m+1](v[m+1])
     return a,v
@@ -161,15 +157,15 @@ class MLP():
     """
     Nl=self.Nl
 
-    d = [None]*(self.Nl+2) # error-propagation-coefficents d[m]
+    d = [None]*(self.Nl) # error-propagation-coefficents d[m]
 
     # reshape desired-output if needed
-    if not y.shape == (self.Ny,1):
-      y = y.reshape((self.Ny,1))
+    if not y.shape == (self.Nodes[-1],1):
+      y = y.reshape((self.Nodes[-1],1))
 
     # calculate error-propagation-coefficents for units in each layer
-    d[Nl+1] = self.dl( y , a[Nl+1]) * self.df[Nl+1](v[Nl+1]) # error-propagation-coefficents of output units
-    for m in range(Nl,-1,-1):
+    d[Nl-1] = self.dl( y , a[Nl-1]) * self.df[Nl-1](v[Nl-1]) # error-propagation-coefficents of output units
+    for m in range(Nl-2,-1,-1):
       d[m] =  np.dot(  np.delete( self.w[m].T , -1, 0)  , d[m+1]  ) * self.df[m](v[m])  # must get row (column) of bias weights out of the computation of propagation coefficents
 
     return d
@@ -190,7 +186,7 @@ class MLP():
     d = self.backward_pass( y, a, v ) 
 
     #compute gradient for each layer. To siumlate bias activation, i add to activations a 1 at the bottom
-    grad = [ np.dot( d[m+1] , np.vstack( ( a[m], 1 ) ).T ) for m in range(Nl+1) ]
+    grad = [ np.dot( d[m+1] , np.vstack( ( a[m], 1 ) ).T ) for m in range(Nl-1) ]
 
     return np.array(grad, dtype=object)
 
@@ -285,11 +281,11 @@ class MLP():
     returns output of the network given the supplied pattern
     """
     # reshape input if needed
-    if not u.shape == (self.Nu,1):
-      u = u.reshape((self.Nu,1))
+    if not u.shape == (self.Nodes[0],1):
+      u = u.reshape((self.Nodes[0],1))
 
     # calculate activation of units in each layer
-    for m in range(self.Nl+1):
+    for m in range(self.Nl-1):
       u = self.f[m+1]( np.dot( self.w[m] , np.vstack((u,1)) ) )
 
     #return the output  
