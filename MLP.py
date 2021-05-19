@@ -311,6 +311,13 @@ class MLP():
       if np.array_equal(self.supply(x,True).reshape(-1), y.reshape(-1)): correct+=1
     return correct/total
 
+  def accuracy_ltu(self,X,Y):
+    correct = 0
+    total = len(X)
+    for x,y in zip(X,Y):
+      if int(self.supply(x)>.5) == y: correct+=1
+    return correct/total
+
   def MSE(self,X,Y):
     outs = self.__call__( X ) # actual outputs of the network on training set
     if outs.shape != Y.shape:
