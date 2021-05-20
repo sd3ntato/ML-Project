@@ -4,50 +4,15 @@
 # general imports
 import numpy as np
 import pandas as pd
+import pickle
 from sklearn.utils import shuffle
 from IPython.display import clear_output
+from funct import *
 
 # activation functions
 from numpy import tanh
 from scipy.special import softmax
-ide = lambda x : np.copy(x)
-relu = lambda x: x*(x > 0)
-#softmax = lambda x: np.exp(x - logsumexp(x, keepdims=True)) # implementazione scipy special
 
-def to_categorical(y, num_classes=None, dtype='float32'): # code from keras implementation: keras.utils.to_categorical
-  """Converts a class vector (integers) to binary class matrix.
-  E.g. for use with categorical_crossentropy.
-  Args:
-      y: class vector to be converted into a matrix
-          (integers from 0 to num_classes).
-      num_classes: total number of classes. If `None`, this would be inferred
-        as the (largest number in `y`) + 1.
-      dtype: The data type expected by the input. Default: `'float32'`.
-  Returns:
-      A binary matrix representation of the input. The classes axis is placed
-      last.
-  """
-  y = np.array(y, dtype='int')
-  input_shape = y.shape
-  if input_shape and input_shape[-1] == 1 and len(input_shape) > 1:
-    input_shape = tuple(input_shape[:-1])
-  y = y.ravel()
-  if not num_classes:
-    num_classes = np.max(y) + 1
-  n = y.shape[0]
-  categorical = np.zeros((n, num_classes), dtype=dtype)
-  categorical[np.arange(n), y] = 1
-  output_shape = input_shape + (num_classes,)
-  categorical = np.reshape(categorical, output_shape)
-  return categorical
-
-def smax_to_categorical(y):
-  return to_categorical(np.argmax(y),len(y),dtype='int32').reshape(-1,1,1) #non torna int 
-
-# loss functions:
-squared_error = lambda y,d:  np.linalg.norm(y - d) ** 2 # categorical cross-entropy
-cross_entropy = lambda y,d: -np.sum( d * np.log( y + np.finfo(float).eps ) )
-#MSE = lambda x,y: np.mean( np.square( x-y ) )
 
 def derivative(f):
   """
@@ -55,14 +20,10 @@ def derivative(f):
   When f is a loss, returns derivative w.r.t. activation
   When f is cross_entropy and activation of output units is softmax, maths say derivative of loss w.r.t potential is one returned
   """
-  if f == tanh:
-    return lambda x: 1.0 - tanh(x)**2
-  elif f == relu:
-    return lambda x: 1*(x>=0)
-  elif f == ide or f == softmax:
-    return lambda x : x-x+1 
-  elif f == squared_error or f == cross_entropy: 
-    return lambda d,y: d-y
+  if f == tanh: return dtanh
+  elif f == relu: return drelu
+  elif f == ide or f == softmax: return dide 
+  elif f == squared_error or f == cross_entropy: return dloss
 
 
 def conv_str_func(f):
@@ -309,13 +270,6 @@ class MLP():
     for x,y in zip (X,Y):
       # cannot do just self.supply(x,True)==y bc python compares element by element. must use np.equal(x,y) or .all()
       if np.array_equal(self.supply(x,True).reshape(-1), y.reshape(-1)): correct+=1
-    return correct/total
-
-  def accuracy_ltu(self,X,Y):
-    correct = 0
-    total = len(X)
-    for x,y in zip(X,Y):
-      if int(self.supply(x)>.5) == y: correct+=1
     return correct/total
 
   def MSE(self,X,Y):
