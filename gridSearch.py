@@ -54,9 +54,9 @@ def get_fold(folds,i):
 def k_fold_CV(data, params, k=4, n_init=10, max_epochs=300, tresh=.1, bs=30, measure_interval=10, xy=None):
     """
     Grid search of parameters of the net for given data.
-    First divides the data into k folds, then tries all possible congigurations. For each of them 
+    First divides the data into k folds, then tries all possible congigurations of parameters. For each of them 
     computes validation error on one of the folds after training on remaining data by n_init initializations.
-    Best configutation is the one that gave best average validation error.
+    Best configutation is the one that gave best average validation error over the k folds.
     """
 
     # important to do this if data is ordered (case of poly regression in test)
