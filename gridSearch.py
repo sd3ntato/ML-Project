@@ -50,7 +50,7 @@ def get_fold(folds,i):
     val_set = folds[i]  
     return train_set, val_set
 
-def k_fold_CV(data, params, k=4, n_init=10, max_epochs=300, tresh=.1, measure_interval=10, xy=None):
+def k_fold_CV(data, params, k=4, n_init=10, max_epochs=300, tresh=.1, bs=30, measure_interval=10, xy=None):
     """
     Grid search of parameters of the net for given data.
     First divides the data into k folds, then tries all possible congigurations. For each of them 
@@ -84,7 +84,7 @@ def k_fold_CV(data, params, k=4, n_init=10, max_epochs=300, tresh=.1, measure_in
             print(f'initialization {n}') # debugging
 
             # initialize a net with the params in this configuration
-            n = MLP(Nh = c['hidden_units'], Nu = c['Nu'], Ny= c['Ny'], f = c['activation'], f_out=c['f_out'], w_range=c['weights_range'], w_scale=c['weights_scale'], loss=c['loss'], error=c['error']) # inizializzo matrice pesi
+            n = MLP(Nodes = c['Nodes'], f = c['f'], f_out=c['f_out'], w_range=c['weights_range']) # inizializzo matrice pesi
             init_w = np.copy( n.w ) # salvo una copia dei pesi iniziali
 
             # for each fold, train the network and save the validation error on k-th fold
@@ -102,11 +102,11 @@ def k_fold_CV(data, params, k=4, n_init=10, max_epochs=300, tresh=.1, measure_in
 
                 # reset weights to initial values
                 n.w = init_w 
-                n.train( tr_x, tr_y,  c['learning_rate'], a= c['alpha'], l=c['lambda'], max_epochs=max_epochs, tresh=tresh, mode="batch", shuffle_data=False, measure_interval=measure_interval, verbose=False ) # train the network 
+                n.train( tr_x, tr_y,  c['learning_rate'], a= c['alpha'], l=c['lambda'], max_epochs=max_epochs, tresh=tresh, bs=bs, shuffle_data=False, measure_interval=measure_interval, verbose=False ) # train the network 
 
                 # compute validation error and save it
-                val_error[i] = n.test_error(val_x, val_y) # test network on this fold and save the resulting error
-                train_error[i] = n.test_error(tr_x,tr_y)
+                val_error[i] = n.error(val_x, val_y) # test network on this fold and save the resulting error
+                train_error[i] = n.error(tr_x,tr_y)
 
                 #print(f'fold {i} done, error {val_error[i]}') # debugging
             
