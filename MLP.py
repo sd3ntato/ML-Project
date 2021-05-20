@@ -256,7 +256,7 @@ class MLP():
       self.loss_history.append(loss)
 
       if verbose: 
-        print(f'training error atm: {e}, {loss}') 
+        print(f'training error atm: {e}, validation error {v}, epoch={i}') 
 
         clear_output(wait=True)
 
@@ -324,4 +324,18 @@ class MLP():
       outs = outs.reshape(Y.shape) # reshape when neede or error calculation doesn't work
     assert outs.shape == Y.shape
     return np.mean( np.square( outs - Y ) )
-  
+
+  def MED(self,X,Y):
+    outs = self.__call__(X)
+    total=0
+    if outs.shape != Y.shape:
+      outs = outs.reshape(Y.shape) # reshape when neede or error calculation doesn't work  
+    delta=outs-Y  
+    for d in delta:
+      total+=np.linalg.norm(d)
+    return total/len(delta)
+
+  def save(self, filename):
+    pickle_out=open(filename,'wb')
+    pickle.dump(self,pickle_out)
+    pickle_out.close()
