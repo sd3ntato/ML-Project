@@ -2,7 +2,8 @@ import pandas as pd
 import numpy as np
 from itertools import permutations
 from itertools import product
-from MLP import MLP, cross_entropy, to_categorical
+from MLP import MLP
+from funct import cross_entropy, to_categorical
 from scipy.special import softmax
 from IPython.display import clear_output
 from sklearn.utils import shuffle
