@@ -85,7 +85,7 @@ def k_fold_CV(data, params, k=4, n_init=10, max_epochs=300, tresh=.1, bs=30, mea
             print(f'initialization {n}') # debugging
 
             # initialize a net with the params in this configuration
-            n = MLP(Nodes = c['Nodes'], f = c['f'], f_out=c['f_out'], w_range=c['weights_range']) # inizializzo matrice pesi
+            n = MLP(Nodes = c['Nodes'], f = c['f'], f_out=c['f_out']) # inizializzo matrice pesi
             init_w = np.copy( n.w ) # salvo una copia dei pesi iniziali
 
             # for each fold, train the network and save the validation error on k-th fold
