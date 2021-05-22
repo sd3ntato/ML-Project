@@ -43,7 +43,7 @@ def conv_str_func(f):
 
 class MLP():
 
-  def __init__(self, Nodes, f='tanh', f_out='ide'):
+  def __init__(self, Nodes, f='tanh', f_out='ide', w_range=None):
     """
     Nh: number of hidden units for each layer
     Nu: number of input units
@@ -85,8 +85,12 @@ class MLP():
     self.train_loss_history=[]
     self.valid_loss_history=[]
     # a[m+1] = f[m]( w[m]*a[m] ) a[m] = (Nh,1) a[m+1] = (Nh,1) w[m] = (Nh,Nh)
-    for i in range(0,Nl-1): # Weight layer to layer, last column is bias
-      self.w[i]=( 2*np.random.rand( Nodes[i+1], Nodes[i]+1 ) -1 )/np.sqrt(Nodes[i+1]+Nodes[i]) #the terms inside the sqrt are for xavier initialization
+    if w_range is not None:
+      for i in range(0,Nl-1): # Weight layer to layer, last column is bias
+        self.w[i]=( 2*np.random.rand( Nodes[i+1], Nodes[i]+1 ) -1 )*w_range #the terms inside the sqrt are for xavier initialization
+    else:
+      for i in range(0,Nl-1): # Weight layer to layer, last column is bias
+        self.w[i]=( 2*np.random.rand( Nodes[i+1], Nodes[i]+1 ) -1 )/np.sqrt(Nodes[i+1]+Nodes[i]) #the terms inside the sqrt are for xavier initialization
 
     # previous weights deltas tensor for momentum training
     self.deltas = np.array( [ np.zeros(self.w[i].shape) for i in range(self.Nl-1) ] ,dtype=object) # prevous delta for momentum computation
