@@ -82,11 +82,11 @@ class MLP():
 
     self.train_history=[]
     self.valid_history=[]
-    self.loss_history=[]
-
+    self.train_loss_history=[]
+    self.valid_loss_history=[]
     # a[m+1] = f[m]( w[m]*a[m] ) a[m] = (Nh,1) a[m+1] = (Nh,1) w[m] = (Nh,Nh)
     for i in range(0,Nl-1): # Weight layer to layer, last column is bias
-      self.w[i]=( 2*np.random.rand( Nodes[i+1], Nodes[i]+1 ) -1 )*np.sqrt(Nodes[i+1]+Nodes[i]) #the terms inside the sqrt are for xavier initialization
+      self.w[i]=( 2*np.random.rand( Nodes[i+1], Nodes[i]+1 ) -1 )/np.sqrt(Nodes[i+1]+Nodes[i]) #the terms inside the sqrt are for xavier initialization
 
     # previous weights deltas tensor for momentum training
     self.deltas = np.array( [ np.zeros(self.w[i].shape) for i in range(self.Nl-1) ] ,dtype=object) # prevous delta for momentum computation
@@ -212,9 +212,11 @@ class MLP():
       self.train_history.append(e)
 
       # mesure loss on training set to get statistics
-      loss = self.l(self.__call__(train_x).reshape(np.shape(train_y)),train_y)
-
-      self.loss_history.append(loss)
+      loss = self.l(self.__call__(train_x).reshape(np.shape(train_y)),train_y)/len(train_y)
+      self.train_loss_history.append(loss)
+      
+      loss = self.l(self.__call__(val_x).reshape(np.shape(val_y)),val_y)/len(val_y)
+      self.valid_loss_history.append(loss)
 
       if verbose: 
         print(f'training error atm: {e}, validation error {v}, epoch={i}') 
