@@ -1,0 +1,327 @@
+testing 36 configurations 
+
+testing configuration {'Nodes': [10, 50, 2], 'f': 'tanh', 'f_out': 'ide', 'weights_range': 0.7, 'learning_rate': 0.01, 'alpha': 0.5, 'lambda': 0}, 0/36
+initialization 0
+validation: 7.200227631141337, train: 5.213636111624586
+initialization 1
+validation: 7.055030045677517, train: 5.144856632799115
+initialization 2
+validation: 7.225103515942967, train: 5.326868472005513
+best mean error for this config: 7.055030045677517 
+
+testing configuration {'Nodes': [10, 50, 2], 'f': 'tanh', 'f_out': 'ide', 'weights_range': 0.7, 'learning_rate': 0.01, 'alpha': 0.5, 'lambda': 1e-09}, 1/36
+initialization 0
+validation: 7.144804938110464, train: 5.2320242665356576
+initialization 1
+validation: 7.010371098997747, train: 5.127851834278167
+initialization 2
+validation: 7.024594533673492, train: 5.240692448149413
+best mean error for this config: 7.010371098997747 
+
+testing configuration {'Nodes': [10, 50, 2], 'f': 'tanh', 'f_out': 'ide', 'weights_range': 0.7, 'learning_rate': 0.01, 'alpha': 0.5, 'lambda': 1e-05}, 2/36
+initialization 0
+validation: 7.109924583871185, train: 5.514686924043835
+initialization 1
+validation: 6.796120627790288, train: 5.136624564126923
+initialization 2
+validation: 7.378456894221983, train: 5.463947081603305
+best mean error for this config: 6.796120627790288 
+
+testing configuration {'Nodes': [10, 50, 2], 'f': 'tanh', 'f_out': 'ide', 'weights_range': 0.7, 'learning_rate': 0.01, 'alpha': 0.8, 'lambda': 0}, 3/36
+initialization 0
+validation: 7.474102736722488, train: 4.713821216152633
+initialization 1
+validation: 7.279123247980967, train: 4.723164815739967
+initialization 2
+validation: 7.445519581382021, train: 5.145019865339607
+best mean error for this config: 7.279123247980967 
+
+testing configuration {'Nodes': [10, 50, 2], 'f': 'tanh', 'f_out': 'ide', 'weights_range': 0.7, 'learning_rate': 0.01, 'alpha': 0.8, 'lambda': 1e-09}, 4/36
+initialization 0
+validation: 7.309642552573908, train: 4.5365865468966025
+initialization 1
+validation: 7.172178754157155, train: 4.865667506089678
+initialization 2
+validation: 7.685916368779818, train: 5.0300793610931
+best mean error for this config: 7.172178754157155 
+
+testing configuration {'Nodes': [10, 50, 2], 'f': 'tanh', 'f_out': 'ide', 'weights_range': 0.7, 'learning_rate': 0.01, 'alpha': 0.8, 'lambda': 1e-05}, 5/36
+initialization 0
+validation: 7.350818461402174, train: 4.856405176450148
+initialization 1
+validation: 7.381534395016731, train: 4.64447283869205
+initialization 2
+validation: 7.270377681982909, train: 4.59139569042758
+best mean error for this config: 7.270377681982909 
+
+testing configuration {'Nodes': [10, 50, 2], 'f': 'tanh', 'f_out': 'ide', 'weights_range': 0.7, 'learning_rate': 0.001, 'alpha': 0.5, 'lambda': 0}, 6/36
+initialization 0
+validation: 7.518701775992946, train: 6.878727077766589
+initialization 1
+validation: 7.452400075399689, train: 6.764848609919768
+initialization 2
+validation: 7.522348546822354, train: 6.793308797367528
+best mean error for this config: 7.452400075399689 
+
+testing configuration {'Nodes': [10, 50, 2], 'f': 'tanh', 'f_out': 'ide', 'weights_range': 0.7, 'learning_rate': 0.001, 'alpha': 0.5, 'lambda': 1e-09}, 7/36
+initialization 0
+validation: 7.471425995098906, train: 6.767219276721284
+initialization 1
+validation: 7.491312470626372, train: 6.786536742039837
+initialization 2
+validation: 7.729155726348752, train: 6.968072838703373
+best mean error for this config: 7.471425995098906 
+
+testing configuration {'Nodes': [10, 50, 2], 'f': 'tanh', 'f_out': 'ide', 'weights_range': 0.7, 'learning_rate': 0.001, 'alpha': 0.5, 'lambda': 1e-05}, 8/36
+initialization 0
+validation: 7.531217726655598, train: 6.943165940056844
+initialization 1
+validation: 7.443130182662468, train: 6.821710842284015
+initialization 2
+validation: 7.535219639265307, train: 6.8657941767098665
+best mean error for this config: 7.443130182662468 
+
+testing configuration {'Nodes': [10, 50, 2], 'f': 'tanh', 'f_out': 'ide', 'weights_range': 0.7, 'learning_rate': 0.001, 'alpha': 0.8, 'lambda': 0}, 9/36
+initialization 0
+validation: 7.041792321710774, train: 6.043256641099925
+initialization 1
+validation: 7.005657142452073, train: 5.955981578561971
+initialization 2
+validation: 7.298555565594851, train: 6.1249940841615045
+best mean error for this config: 7.005657142452073 
+
+testing configuration {'Nodes': [10, 50, 2], 'f': 'tanh', 'f_out': 'ide', 'weights_range': 0.7, 'learning_rate': 0.001, 'alpha': 0.8, 'lambda': 1e-09}, 10/36
+initialization 0
+validation: 7.0703001880103935, train: 6.095522426301921
+initialization 1
+validation: 6.898737925421694, train: 5.939228727326915
+initialization 2
+validation: 6.920115574319157, train: 5.991943967258764
+best mean error for this config: 6.898737925421694 
+
+testing configuration {'Nodes': [10, 50, 2], 'f': 'tanh', 'f_out': 'ide', 'weights_range': 0.7, 'learning_rate': 0.001, 'alpha': 0.8, 'lambda': 1e-05}, 11/36
+initialization 0
+validation: 7.0531327282618355, train: 6.200327195166231
+initialization 1
+validation: 7.13704183406797, train: 6.274834495329997
+initialization 2
+validation: 7.027920332543854, train: 6.17489148104084
+best mean error for this config: 7.027920332543854 
+
+testing configuration {'Nodes': [10, 50, 10, 2], 'f': 'tanh', 'f_out': 'ide', 'weights_range': 0.7, 'learning_rate': 0.01, 'alpha': 0.5, 'lambda': 0}, 12/36
+initialization 0
+validation: 9.746935934229914, train: 5.219044981484625
+initialization 1
+validation: 10.275756571995315, train: 6.823829024302402
+initialization 2
+validation: 8.84508936016765, train: 4.6100427476779355
+best mean error for this config: 8.84508936016765 
+
+testing configuration {'Nodes': [10, 50, 10, 2], 'f': 'tanh', 'f_out': 'ide', 'weights_range': 0.7, 'learning_rate': 0.01, 'alpha': 0.5, 'lambda': 1e-09}, 13/36
+initialization 0
+validation: 8.45111426317704, train: 4.879956218278686
+initialization 1
+validation: 7.6743152332321465, train: 4.315839694544188
+initialization 2
+validation: 8.503462921844887, train: 5.338322419777967
+best mean error for this config: 7.6743152332321465 
+
+testing configuration {'Nodes': [10, 50, 10, 2], 'f': 'tanh', 'f_out': 'ide', 'weights_range': 0.7, 'learning_rate': 0.01, 'alpha': 0.5, 'lambda': 1e-05}, 14/36
+initialization 0
+validation: 8.771144912874718, train: 5.361850838035612
+initialization 1
+validation: 8.062039492003567, train: 4.959736892727696
+initialization 2
+validation: 9.047337841788371, train: 5.629411034094559
+best mean error for this config: 8.062039492003567 
+
+testing configuration {'Nodes': [10, 50, 10, 2], 'f': 'tanh', 'f_out': 'ide', 'weights_range': 0.7, 'learning_rate': 0.01, 'alpha': 0.8, 'lambda': 0}, 15/36
+initialization 0
+validation: 11.104802181596567, train: 8.824934422005617
+initialization 1
+validation: 12.870410549855269, train: 11.077342874166696
+initialization 2
+validation: 16.270049059965473, train: 15.122586932468035
+best mean error for this config: 11.104802181596567 
+
+testing configuration {'Nodes': [10, 50, 10, 2], 'f': 'tanh', 'f_out': 'ide', 'weights_range': 0.7, 'learning_rate': 0.01, 'alpha': 0.8, 'lambda': 1e-09}, 16/36
+initialization 0
+validation: 11.33451266809565, train: 8.38900585039889
+initialization 1
+validation: 15.457817982673898, train: 13.375578146094377
+initialization 2
+validation: 9.63735151465649, train: 7.121237984034084
+best mean error for this config: 9.63735151465649 
+
+testing configuration {'Nodes': [10, 50, 10, 2], 'f': 'tanh', 'f_out': 'ide', 'weights_range': 0.7, 'learning_rate': 0.01, 'alpha': 0.8, 'lambda': 1e-05}, 17/36
+initialization 0
+validation: 9.329278179141363, train: 6.332074502520994
+initialization 1
+validation: 14.048881477786782, train: 11.588165284389442
+initialization 2
+validation: 10.927691159757126, train: 8.900340831725229
+best mean error for this config: 9.329278179141363 
+
+testing configuration {'Nodes': [10, 50, 10, 2], 'f': 'tanh', 'f_out': 'ide', 'weights_range': 0.7, 'learning_rate': 0.001, 'alpha': 0.5, 'lambda': 0}, 18/36
+initialization 0
+validation: 7.02283971898741, train: 5.233109033439116
+initialization 1
+validation: 8.270865688434167, train: 5.839562294935567
+initialization 2
+validation: 7.3684939004467385, train: 5.38179832453771
+best mean error for this config: 7.02283971898741 
+
+testing configuration {'Nodes': [10, 50, 10, 2], 'f': 'tanh', 'f_out': 'ide', 'weights_range': 0.7, 'learning_rate': 0.001, 'alpha': 0.5, 'lambda': 1e-09}, 19/36
+initialization 0
+validation: 7.8199004274022474, train: 5.609305891570594
+initialization 1
+validation: 7.749157353660237, train: 5.850380983776008
+initialization 2
+validation: 7.831723227258911, train: 5.835446100361873
+best mean error for this config: 7.749157353660237 
+
+testing configuration {'Nodes': [10, 50, 10, 2], 'f': 'tanh', 'f_out': 'ide', 'weights_range': 0.7, 'learning_rate': 0.001, 'alpha': 0.5, 'lambda': 1e-05}, 20/36
+initialization 0
+validation: 7.608621791677501, train: 5.641348667283531
+initialization 1
+validation: 7.294939459327912, train: 5.639965472090597
+initialization 2
+validation: 7.4989167624276325, train: 6.088918339961007
+best mean error for this config: 7.294939459327912 
+
+testing configuration {'Nodes': [10, 50, 10, 2], 'f': 'tanh', 'f_out': 'ide', 'weights_range': 0.7, 'learning_rate': 0.001, 'alpha': 0.8, 'lambda': 0}, 21/36
+initialization 0
+validation: 7.025141235603929, train: 4.729043431474229
+initialization 1
+validation: 7.637009827682214, train: 4.833633404958778
+initialization 2
+validation: 7.205754959514394, train: 4.61946945837562
+best mean error for this config: 7.025141235603929 
+
+testing configuration {'Nodes': [10, 50, 10, 2], 'f': 'tanh', 'f_out': 'ide', 'weights_range': 0.7, 'learning_rate': 0.001, 'alpha': 0.8, 'lambda': 1e-09}, 22/36
+initialization 0
+validation: 7.2556682424643135, train: 4.697845275446273
+initialization 1
+validation: 7.007764738433432, train: 4.928402742225223
+initialization 2
+validation: 7.319740691924026, train: 4.748072433284052
+best mean error for this config: 7.007764738433432 
+
+testing configuration {'Nodes': [10, 50, 10, 2], 'f': 'tanh', 'f_out': 'ide', 'weights_range': 0.7, 'learning_rate': 0.001, 'alpha': 0.8, 'lambda': 1e-05}, 23/36
+initialization 0
+validation: 7.2403108892795585, train: 5.021428048931161
+initialization 1
+validation: 7.2296025848695, train: 5.23891905501657
+initialization 2
+validation: 7.632886964370365, train: 5.196550050491978
+best mean error for this config: 7.2296025848695 
+
+testing configuration {'Nodes': [10, 60, 30, 2], 'f': 'tanh', 'f_out': 'ide', 'weights_range': 0.7, 'learning_rate': 0.01, 'alpha': 0.5, 'lambda': 0}, 24/36
+initialization 0
+validation: 6.295254944052724, train: 3.0121482760537317
+initialization 1
+validation: 6.121568166569501, train: 2.924126548673257
+initialization 2
+validation: 6.382059638771887, train: 2.91419921291255
+best mean error for this config: 6.121568166569501 
+
+testing configuration {'Nodes': [10, 60, 30, 2], 'f': 'tanh', 'f_out': 'ide', 'weights_range': 0.7, 'learning_rate': 0.01, 'alpha': 0.5, 'lambda': 1e-09}, 25/36
+initialization 0
+validation: 6.26809715178538, train: 2.799379645194479
+initialization 1
+validation: 6.010974082765657, train: 2.8204003779938236
+initialization 2
+validation: 6.397610415945524, train: 3.167265442737138
+best mean error for this config: 6.010974082765657 
+
+testing configuration {'Nodes': [10, 60, 30, 2], 'f': 'tanh', 'f_out': 'ide', 'weights_range': 0.7, 'learning_rate': 0.01, 'alpha': 0.5, 'lambda': 1e-05}, 26/36
+initialization 0
+validation: 6.132403843632171, train: 2.7712003273978443
+initialization 1
+validation: 6.246058859936932, train: 3.028943661278211
+initialization 2
+validation: 6.578594106872712, train: 2.765091117357198
+best mean error for this config: 6.132403843632171 
+
+testing configuration {'Nodes': [10, 60, 30, 2], 'f': 'tanh', 'f_out': 'ide', 'weights_range': 0.7, 'learning_rate': 0.01, 'alpha': 0.8, 'lambda': 0}, 27/36
+initialization 0
+validation: 6.2731177244415095, train: 3.5620707314914
+initialization 1
+validation: 6.4808981847536575, train: 2.8892332917932206
+initialization 2
+validation: 7.075348296493324, train: 3.380786766535241
+best mean error for this config: 6.2731177244415095 
+
+testing configuration {'Nodes': [10, 60, 30, 2], 'f': 'tanh', 'f_out': 'ide', 'weights_range': 0.7, 'learning_rate': 0.01, 'alpha': 0.8, 'lambda': 1e-09}, 28/36
+initialization 0
+validation: 6.632825315633028, train: 3.5242465690319964
+initialization 1
+validation: 6.997619234756521, train: 3.4394194645954426
+initialization 2
+validation: 6.332794097572042, train: 2.97855316678081
+best mean error for this config: 6.332794097572042 
+
+testing configuration {'Nodes': [10, 60, 30, 2], 'f': 'tanh', 'f_out': 'ide', 'weights_range': 0.7, 'learning_rate': 0.01, 'alpha': 0.8, 'lambda': 1e-05}, 29/36
+initialization 0
+validation: 6.906756464471689, train: 3.416744647402657
+initialization 1
+validation: 6.6572729618443205, train: 3.4397867398807205
+initialization 2
+validation: 6.6202012474347995, train: 3.1971324257250777
+best mean error for this config: 6.6202012474347995 
+
+testing configuration {'Nodes': [10, 60, 30, 2], 'f': 'tanh', 'f_out': 'ide', 'weights_range': 0.7, 'learning_rate': 0.001, 'alpha': 0.5, 'lambda': 0}, 30/36
+initialization 0
+validation: 6.763697201336188, train: 4.692397239078613
+initialization 1
+validation: 6.469001279479421, train: 4.742578316193296
+initialization 2
+validation: 6.666188067099512, train: 4.875548122689326
+best mean error for this config: 6.469001279479421 
+
+testing configuration {'Nodes': [10, 60, 30, 2], 'f': 'tanh', 'f_out': 'ide', 'weights_range': 0.7, 'learning_rate': 0.001, 'alpha': 0.5, 'lambda': 1e-09}, 31/36
+initialization 0
+validation: 6.746871649751438, train: 4.756118154784152
+initialization 1
+validation: 6.653702193181566, train: 4.929732858489654
+initialization 2
+validation: 6.731241839302114, train: 4.919920071036551
+best mean error for this config: 6.653702193181566 
+
+testing configuration {'Nodes': [10, 60, 30, 2], 'f': 'tanh', 'f_out': 'ide', 'weights_range': 0.7, 'learning_rate': 0.001, 'alpha': 0.5, 'lambda': 1e-05}, 32/36
+initialization 0
+validation: 6.47537575720289, train: 5.037843909531521
+initialization 1
+validation: 6.373692952597408, train: 4.899980635026327
+initialization 2
+validation: 6.657348317934145, train: 5.02731793666039
+best mean error for this config: 6.373692952597408 
+
+testing configuration {'Nodes': [10, 60, 30, 2], 'f': 'tanh', 'f_out': 'ide', 'weights_range': 0.7, 'learning_rate': 0.001, 'alpha': 0.8, 'lambda': 0}, 33/36
+initialization 0
+validation: 6.313823424416824, train: 4.010739174591723
+initialization 1
+validation: 6.34258614998155, train: 4.020145921465646
+initialization 2
+validation: 6.4001666479266754, train: 3.9481174182777705
+best mean error for this config: 6.313823424416824 
+
+testing configuration {'Nodes': [10, 60, 30, 2], 'f': 'tanh', 'f_out': 'ide', 'weights_range': 0.7, 'learning_rate': 0.001, 'alpha': 0.8, 'lambda': 1e-09}, 34/36
+initialization 0
+validation: 6.367523099548586, train: 4.090814699133036
+initialization 1
+validation: 6.575957218610582, train: 4.027767647018426
+initialization 2
+validation: 6.488501283652945, train: 4.048431000956504
+best mean error for this config: 6.367523099548586 
+
+testing configuration {'Nodes': [10, 60, 30, 2], 'f': 'tanh', 'f_out': 'ide', 'weights_range': 0.7, 'learning_rate': 0.001, 'alpha': 0.8, 'lambda': 1e-05}, 35/36
+initialization 0
+validation: 6.608922939304295, train: 4.628167808732164
+initialization 1
+validation: 6.520590534678824, train: 4.6045189276512195
+initialization 2
+validation: 6.70829165596837, train: 4.49526482703612
+best mean error for this config: 6.520590534678824 
+
+best config {'Nodes': [10, 60, 30, 2], 'f': 'tanh', 'f_out': 'ide', 'weights_range': 0.7, 'learning_rate': 0.001, 'alpha': 0.8, 'lambda': 1e-05}: 6.010974082765657
