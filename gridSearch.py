@@ -51,7 +51,7 @@ def get_fold(folds,i):
     val_set = folds[i]  
     return train_set, val_set
 
-def k_fold_CV(data, params, k=4, n_init=10, max_epochs=300, tresh=.1, bs=30, measure_interval=10, xy=None):
+def k_fold_CV(data, params, k=4, max_epochs=300, tresh=.1, bs=30, measure_interval=10, xy=None):
     """
     Grid search of parameters of the net for given data.
     First divides the data into k folds, then tries all possible congigurations of parameters. For each of them 
@@ -75,54 +75,39 @@ def k_fold_CV(data, params, k=4, n_init=10, max_epochs=300, tresh=.1, bs=30, mea
     # initializations on all of the folds.
     print(f'testing {len(configurations)} configurations \n') # debugging
     for idx_c,c in enumerate(configurations):
-        best_error_conf = np.inf  # best error given by some initialization of an MLP with this configuration
         print(f'testing configuration {c}, {idx_c}/{len(configurations)}') # debugging
 
-        # test the configuration n_init times on every fold
-        # this could be done with multithreading 
-        # min( list( p.map(do_print,range(0,10)) ) )
-        for n in range(n_init):
-            print(f'initialization {n}') # debugging
-
-            # initialize a net with the params in this configuration
-            n = MLP(Nodes = c['Nodes'], f = c['f'], f_out=c['f_out']) # inizializzo matrice pesi
-            init_w = np.copy( n.w ) # salvo una copia dei pesi iniziali
-
-            # for each fold, train the network and save the validation error on k-th fold
-            val_error = [None]*k # we save validation error for each fold
-            train_error = [None]*k
-            for i in range(k):
-                
-                # get data form i-th fold
-                train_set, val_set = get_fold(folds,i) 
-
-                # split patterns into input and target output
-                tr_x, tr_y = xy(train_set)
-                val_x, val_y = xy(val_set)
-                #print(f' {tr_x.shape}, {tr_y.shape}, {val_x.shape}, {val_y.shape} ')
-
-                # reset weights to initial values
-                n.w = init_w 
-                n.train( tr_x, tr_y,  c['learning_rate'], a= c['alpha'], l=c['lambda'], max_epochs=max_epochs, tresh=tresh, bs=bs, shuffle_data=False, measure_interval=measure_interval, verbose=False ) # train the network 
-
-                # compute validation error and save it
-                val_error[i] = n.error(val_x, val_y) # test network on this fold and save the resulting error
-                train_error[i] = n.error(tr_x,tr_y)
-
-                #print(f'fold {i} done, error {val_error[i]}') # debugging
+        # for each fold, train the network and save the validation error on k-th fold
+        val_error = [None]*k # we save validation error for each fold
+        train_error = [None]*k
+        for i in range(k):
             
-            # compute mean validation error on the k folds, save the one given by the best initialization
-            val_error = np.mean(val_error) 
-            train_error = np.mean(train_error)
-            print(f'validation: {val_error}, train: {train_error}')
-            if val_error < best_error_conf:
-                best_error_conf = val_error
+            # get data form i-th fold
+            train_set, val_set = get_fold(folds,i) 
+
+            # split patterns into input and target output
+            tr_x, tr_y = xy(train_set)
+            val_x, val_y = xy(val_set)
+            print(f' {tr_x.shape}, {tr_y.shape}, {val_x.shape}, {val_y.shape} ')
+
+            # new net
+            n = MLP(Nodes = c['Nodes'], f = c['f'], f_out=c['f_out'], w_range=c['weights_range']) # inizializzo matrice pesi
+            n.train( tr_x, tr_y,  c['learning_rate'], a= c['alpha'], l=c['lambda'], max_epochs=max_epochs, tresh=tresh, bs=bs, shuffle_data=False, measure_interval=measure_interval, verbose=False ) # train the network 
+
+            # compute validation error and save it
+            val_error[i] = n.error(val_x, val_y) # test network on this fold and save the resulting error
+            train_error[i] = n.error(tr_x,tr_y)
+
+            print(f'fold {i} done, error {val_error[i]}') # debugging
+        
+        # compute mean validation error on the k folds
+        val_error = np.mean(val_error) 
+        train_error = np.mean(train_error)
                     
-        # best_error_conf errore minimo che ho trovato con questa configurazione
-        # after computing error of best initialization with this configuration, compare it with other configurations and save better one
-        print(f'best mean error for this config: {best_error_conf} \n')
-        if best_error_conf < best_error:
-            best_error = best_error_conf
+        
+        print(f'mean error for this config: validation {val_error} train {train_error} \n')
+        if val_error < best_error:
+            best_error = val_error
             best_conf = c
         
     print(f'best config {c}: {best_error}')
