@@ -219,11 +219,15 @@ class MLP():
       loss = self.l(self.__call__(train_x).reshape(np.shape(train_y)),train_y)/len(train_y)
       self.train_loss_history.append(loss)
       
-      loss = self.l(self.__call__(val_x).reshape(np.shape(val_y)),val_y)/len(val_y)
-      self.valid_loss_history.append(loss)
+      if valx is not None:
+        loss = self.l(self.__call__(val_x).reshape(np.shape(val_y)),val_y)/len(val_y)
+        self.valid_loss_history.append(loss)
 
       if verbose: 
-        print(f'training error atm: {e}, validation error {v}, epoch={i}') 
+        if valx is None:
+          print(f'training error atm: {e}, epoch={i}') 
+        else:
+          print(f'training error atm: {e}, validation error {v}, epoch={i}') 
 
         clear_output(wait=True)
 
